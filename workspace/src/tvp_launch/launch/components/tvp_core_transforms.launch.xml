@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+  <arg name="vehicle_id" default="alpha" description="префикс робота: namespace + TF-фреймы (2+ роботов в одной сети)"/>
+  <!-- robot_configs (внутренний gitlab) для turtlebot нет: берём описание из kobuki_description -->
+  <arg name="model_file"
+       default="$(find-pkg-share kobuki_description)/urdf/kobuki_standalone.urdf.xacro"
+       description="path to the file of model settings (*.xacro)"/>
+
+  <group>
+    <!-- namespacing: все TF под /<vehicle_id>/tf; URDF-фреймы префиксованы через frame_prefix -->
+    <push-ros-namespace namespace="$(var vehicle_id)"/>
+
+    <node name="robot_state_publisher" pkg="robot_state_publisher" exec="robot_state_publisher">
+      <param name="robot_description" value="$(command 'xacro $(var model_file)' 'warn')"/>
+      <!-- frame_prefix префиксует все URDF-фреймы (base_footprint/base_link/wheels/...) -->
+      <param name="frame_prefix" value="$(var vehicle_id)/"/>
+    </node>
+
+    <!-- Mount лидара: <p>base_link -> <p>lidar_70 (p = <vehicle_id>/).
+         Нужен и lio_sam (lidar2Baselink), и twist_estimator (плечо ω×t).
+         TODO: вписать РЕАЛЬНЫЙ офсет установки MID360 (сейчас заглушка z=0.20). -->
+    <node pkg="tf2_ros" exec="static_transform_publisher" name="lidar_70_mount_tf"
+          args="--x 0.0 --y 0.0 --z 0.20 --roll 0.0 --pitch 0.0 --yaw 0.0
+                --frame-id $(var vehicle_id)/base_link --child-frame-id $(var vehicle_id)/lidar_70"/>
+
+    <!-- Подвешиваем odom kobuki дочерним к одометрии lio_sam (identity в начале координат).
+         <p>lio_sam_odom -> <p>base_footprint (SLAM), <p>odom -> <p>base_link_kobuki (kobuki). -->
+    <node pkg="tf2_ros" exec="static_transform_publisher" name="kobuki_odom_to_lio_sam_tf"
+          args="--x 0.0 --y 0.0 --z 0.0 --roll 0.0 --pitch 0.0 --yaw 0.0
+                --frame-id $(var vehicle_id)/lio_sam_odom --child-frame-id $(var vehicle_id)/odom"/>
+
+    <!-- Доп. фрейм робота: <p>lidar_link -> <vehicle_id> (identity). Новый child, петли нет. -->
+    <node pkg="tf2_ros" exec="static_transform_publisher" name="lidar_link_to_vehicle_tf"
+          args="--x 0.0 --y 0.0 --z 0.0 --roll 0.0 --pitch 0.0 --yaw 0.0
+                --frame-id $(var vehicle_id)/lidar_link --child-frame-id $(var vehicle_id)"/>
+  </group>
+</launch>

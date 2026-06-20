@@ -1,0 +1,37 @@
+/**:
+  ros__parameters:
+    dt: 0.05
+    # plant: 2nd-order Newton + Coulomb friction + lumped drive with
+    # back-EMF damping (asymmetric α and β).  See defense slides
+    # "От PWM до силы тяги" for derivation.  Model:
+    #   m·v̇ = F − F_C·sign(v)
+    #   τ_F·Ḟ = α·v_cmd − β·v − F
+    # Identified on real robot:
+    #   m, F_C — weigh + b2 coast-down (analysis/identification_b2.ipynb)
+    #   α, τ_F — step-response (analysis/identification_linear.ipynb)
+    #   β — not separately identified; default ≈ 1.5·α captures typical
+    #       hobby-motor back-EMF damping.
+    m: 2.0                                        # robot mass [kg]
+    F_C: 0.94                                     # Coulomb friction [N]
+    alpha: 21.0                                   # drive gain on v_cmd [N·s/m]
+    beta: 19.0                                    # damping on v [N·s/m] — calibrated so v_real reaches v_cmd_max=0.5
+    tau_F: 0.15                                   # effective mechanical lag [s]
+    # angular axis: 1st-order lag from w_cmd to w. Starting guess; identify
+    # on hardware via step response.
+    tau_w: 0.03                                   # angular-velocity time constant [s]
+                                                  # measured on hardware via step response (±1 rad/s)
+                                                  # transient ~0.1-0.15 s → τ_w ≈ 0.02-0.05 s
+    robots_ids: [1, 2, 3]
+    pacemaker_idx: 1                              # top-level pacemaker (for marker color)
+    noise_std: 0.02
+    init_x: [0.0, -1.0, -2.0]                    # robot1 at 0, robot2 1m behind, robot3 2m behind
+    init_y: [0.0,  0.0,  0.0]
+    init_theta: [0.0, 0.0, 0.0]
+    follower_peer_ids: [1, 2]                     # robot2 observes robot1, robot3 observes robot2
+    follower_map_frames: ['robot2/map', 'robot3/map']
+    lidar_frames: ['lidar', 'laser']
+    lidar_offset_x: 0.0
+    lidar_offset_y: 0.0
+    lidar_offset_theta: 0.0
+    fov_min_radius: 0.2
+    fov_max_radius: 1.4

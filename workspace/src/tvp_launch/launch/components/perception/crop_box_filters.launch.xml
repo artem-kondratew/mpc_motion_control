@@ -1,0 +1,17 @@
+<launch>
+  <node pkg="autoware_pointcloud_preprocessor" exec="crop_box_filter_node" name="crop_box_filter_inner_node">
+    <param from="$(find-pkg-share tvp_launch)/config/perception/crop_box_filters.param.yaml"/>
+    <remap from="input" to="/sensing/lidar_10_111_0_50/points_raw"/>
+    <remap from="output" to="crop_box_filter/inner/output/points"/>
+    <param name="input_frame" value="base_link"/>
+    <param name="output_frame" value="base_link"/>
+  </node>
+
+  <node pkg="autoware_pointcloud_preprocessor" exec="crop_box_filter_node" name="crop_box_filter_outer_node">
+    <param from="$(find-pkg-share tvp_launch)/config/perception/crop_box_filters.param.yaml"/>
+    <remap from="input" to="crop_box_filter/inner/output/points"/>
+    <remap from="output" to="lidar/cropped/pointcloud"/>
+    <param name="input_frame" value="base_link"/>
+    <param name="output_frame" value="base_link"/>
+  </node>
+</launch>

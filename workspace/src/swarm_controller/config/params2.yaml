@@ -1,0 +1,33 @@
+/**:
+  ros__parameters:
+    global_frame: robot2/map
+    base_footprint: robot2/base_footprint
+    lidar_frame: lidar
+    telemetry_topic: /swarm_controller/telemetry2
+    odom_topic: /robot2/odom
+    scan_topic: /robot2/scan
+    logs_dir: /home/user/swarm_ws/swarm_logs
+    robots_num: 2
+    pacemaker_idx: 1
+    gap: 0.5
+    v_max: 0.5
+    acc_max: 0.1
+    kp_theta: 0.3
+    start: false
+    fov_angles: ['-np.pi/2', 'np.pi/2']  # ±90° (was ±60°, originally
+                                          # ±45°): diagnostics on the cleft
+                                          # showed peer hit phi=+60° even
+                                          # with ±60° → is_valid=false for
+                                          # 2+ seconds.  ±90° gives a full
+                                          # forward hemisphere; peer would
+                                          # have to be exactly sideways or
+                                          # behind to escape, which doesn't
+                                          # happen with the follower trailing.
+    fov_min_radius: 0.2
+    fov_max_radius: 1.4
+
+    period: 0.1
+    pacemaker_id: 1
+
+    robot_id: 2
+    robots_ids: [1, 2]

@@ -1,0 +1,37 @@
+/**:
+  ros__parameters:
+    # topics
+    odom_topic: "/odom"            # kobuki: twist.linear.x = измеренная v
+    cmd_vel_topic: "/cmd_vel"      # -> cmd_vel_wrapper -> /commands/velocity (kobuki)
+
+    # цель cruise control
+    v_ref: 0.3                     # m/s, целевая скорость. Меняется на лету:
+                                   # ros2 param set /control/swarm_cc_mpc_node v_ref X
+                                   # Публикуется как /control/v_ref (+ v_meas/v_cmd/v_error для графиков)
+
+    # plant (kinematic, adas-style)
+    tau: 0.2
+
+    # MPC (n_out = 3: [v - v_ref, a, j])
+    ts: 0.05
+    p: 20
+    c: 10
+    s: 3.0
+    phi_vals: [0.6, 0.6, 0.6]
+    q_vals:   [10.0, 1.0, 1.0]
+
+    # ограничения
+    a_min: -0.5
+    a_max:  0.5
+    v_cmd_min: 0.0
+    v_cmd_max: 0.5
+
+    # замедление на кривизне: эфф. цель = min(v_ref, v_curve), где v_curve приходит от lat-ноды
+    # (предел по кривизне). ТУМБЛЕР режима. Параметры профиля (a_lat_max...) — в lat_mpc.param.yaml.
+    curve_slowdown: true
+    v_curve_topic: "v_curve"       # относительный -> /<vehicle_id>/control/v_curve
+    v_curve_timeout: 0.5           # если v_curve устарел -> едем на полном v_ref
+
+    # safety
+    start: false                   # kill-switch: пока false — нода не публикует
+    odom_timeout: 0.5

@@ -1,0 +1,45 @@
+/**:
+  ros__parameters:
+    # topics (развязка источников под turtlebot)
+    long_cmd_topic: "/control/long_cmd"          # выход CC -> сюда (v + linear.x)
+    cmd_vel_topic: "/cmd_vel"                     # итоговая команда -> cmd_vel_wrapper -> kobuki
+    pacemaker_path_topic: "/pacemaker/path"       # полоса (lane_publisher)
+    pose_topic: "/lio_sam/mapping/odometry"       # глобальная поза x,y,θ (lio_sam, frame lio_sam_odom)
+    odom_topic: "/odom"                           # измеренная угловая w (kobuki, гироскоп)
+
+    # plant (Variant B: 1-й порядок углового привода)
+    # tau_w: 0.03 (исходно, нестабильно) -> 0.12 -> 0.06 -> 0.25.
+    # ИЗМЕРЕНО по бэгу (кросс-корр w_cmd->w_meas): лаг привода ~300 мс (corr 0.96).
+    # Привод kobuki МЕДЛЕННЫЙ (serial+сглаживание+гиро). tau_w ставим ближе к реальности,
+    # чтобы MPC упреждал лаг по горизонту предсказания (p=40 -> 2с превью), а не реагировал поздно.
+    tau_w: 0.25
+
+    # MPC (n_out=3: [e, e_θ, α])
+    ts: 0.05
+    p: 40
+    c: 30
+    s: 9.0                            # 5->9: сильнее штраф на скорость изменения команды (демпфирование)
+    phi_vals: [0.6, 0.95, 0.6, 0.9]
+    q_vals:   [10.0, 1.0, 0.5, 1.0]   # q_e, q_eθ, q_α, q_int. q_e 15->10 (мягче), q_α 0->0.5 (демпф рывков w), q_int 2->1
+    e_int_limit: 2.0                  # anti-windup на ∫e dt
+
+    # ограничения
+    alpha_min: -2.0               # угловое ускорение [rad/s²]
+    alpha_max:  2.0
+    w_cmd_min: -1.5               # угловая скорость [rad/s]
+    w_cmd_max:  1.5
+
+    # --- замедление на кривизне (профиль скорости) ---
+    # lat публикует /control/v_curve = clip(sqrt(a_lat_max / max|κ_впереди|), v_min, v_curve_cap);
+    # CC берёт min(v_ref, v_curve) при curve_slowdown=true (тумблер в cc_mpc.param.yaml).
+    a_lat_max: 0.03         # макс боковое ускорение [m/s²] — ГЛАВНЫЙ knob (меньше -> сильнее тормозит).
+                            # 0.05 -> тормозил только на остром мысе, пологие левые повороты подрезал;
+                            # 0.03 -> притормаживает и на них (κ≈0.5 -> v_curve≈0.24), мыс глубже (~0.16).
+                            # Графь /control/v_curve и трекинг по траектории.
+    v_min: 0.1              # нижний предел скорости в повороте [m/s]
+    curve_lookahead: 2.0    # на сколько метров вперёд берём max|κ| (тормозить ДО входа в поворот).
+                            # 1.0 -> тормозит у самого мыса (поздно); больше -> начинает заранее, к входу уже медленный.
+    v_curve_cap: 1.0        # верхний кап: на прямой κ≈0 -> v_curve=cap -> CC использует свой v_ref
+
+    # стоп при устаревшем long_cmd (CC start=false -> нет long_cmd -> стоп)
+    telemetry_timeout: 0.5

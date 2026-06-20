@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+  <arg name="rviz_config" default="$(find-pkg-share tvp_launch)/rviz/tvp_core.rviz" description="rviz config"/>
+
+  <group>
+    <node
+      pkg="rviz2"
+      exec="rviz2"
+      name="rviz2"
+      output="screen"
+      args="-d $(var rviz_config) -s $(find-pkg-share tvp_launch)/rviz/flame.jpg"
+    />
+    
+  </group>
+
+</launch>

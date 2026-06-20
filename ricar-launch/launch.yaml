@@ -1,0 +1,140 @@
+---
+
+# Файл для конфигурации запуска стека через команду ricar
+
+# Placeholders списков параметров (определяются в parameters.py):
+# __profile__
+# __service__
+# __container__
+# __image__
+# __task__
+
+# Placehodlers параметров для команд:
+# __placeholder_1__
+# __placeholder_2__
+# __placeholder_N__
+
+# Формат заполнения конфигурации:
+# <имя_команды>:
+# aliases:
+#   - <алиас 1>
+#   - <алиас N>
+# parameters:
+#   - список значений параметра для подстановки в __placeholder_1__
+#   - список значений параметра для подстановки в __placeholder_2__
+#   - список значений параметра для подстановки в __placeholder_n__
+# commands:
+#   - "echo __placeholder_1__"
+#   - "echo __placeholder_2__"
+#   - "echo __placeholder_N__"
+
+start:
+  desc: "Запустить профиль"
+  aliases:
+    - run
+    - up
+    - launch
+  parameters:
+    - __profile__
+  commands:
+    - "docker compose -f init-compose.yaml up -d --no-recreate"
+    - "docker compose --profile __placeholder_1__ up -d --no-recreate"
+
+terminate-init:
+  desc: "(debug команда) Остановить init сервисы"
+  commands:
+    - "docker compose -f init-compose.yaml down -t0"
+
+terminate-all:
+  desc: "(debug команда) Остановить все (включая init сервисы)"
+  commands:
+    - "docker compose -f init-compose.yaml down -t0"
+    - "docker compose --profile all kill"
+
+stop:
+  desc: "Остановить профиль"
+  aliases:
+    - down
+    - kill
+  parameters:
+    - __profile__
+  commands:
+    - "docker compose --profile __placeholder_1__ kill"
+
+restart:
+  desc: "Перезапустить контейнеры по профилю"
+  aliases:
+    - rs
+  parameters:
+    - __profile__
+  commands:
+    # Не делаем restart, чтобы точно не пересоздать контейнеры
+    - "docker compose --profile __placeholder_1__ kill"
+    - "docker compose --profile __placeholder_1__ up -d --no-recreate"
+
+clean:
+  desc: "Очистить контейнеры по профилю"
+  aliases:
+    - clear
+  parameters:
+    - __profile__
+  commands:
+    - "docker compose --profile __placeholder_1__ down -t0"
+
+commit:
+  desc: "Закоммитить контейнер сервиса в уже существующий или новый образ"
+  parameters:
+    - __service__
+    - __image__
+  resolvers:
+    1:
+      __placeholder_1__: get_container_id_by_profile
+  commands:
+    - "docker commit --change=\"CMD \"/bin/bash\"\" __placeholder_1__ __placeholder_2__"
+    - "echo COMMITED __placeholder_1__ INTO __placeholder_2__"
+
+ps:
+  desc: "Показать запущенные сервисы"
+  commands:
+    - "docker compose ps
+      --all
+      --format
+      'table {{.Service}}\t{{.State}}\t{{.Status}}\t{{.Name}}\t{{.Image}}'"
+
+log:
+  desc: "Показать все логи для профиля"
+  aliases:
+    - logs
+  parameters:
+    - __profile__
+  commands:
+    - "docker compose --profile __placeholder_1__ logs"
+
+flog:
+  desc: "Показать все логи для профиля и отслеживать"
+  aliases:
+    - flogs
+  parameters:
+    - __profile__
+  commands:
+    - "docker compose --profile __placeholder_1__ logs -f"
+
+enter:
+  desc: "Войти в контейнер по сервису"
+  aliases:
+    - attach
+    - join
+    - shell
+  parameters:
+    - __service__
+  commands:
+    - "docker compose exec __placeholder_1__ bash"
+    - "echo Exit service: __placeholder_1__"
+
+exec:
+  desc: "Выполнить команду внутри контейнера по сервису"
+  parameters:
+    - __service__
+  long_command: true
+  commands:
+    - "docker compose exec __placeholder_1__ bash -c 'source /autoware/install/setup.bash && __placeholder_2__'"

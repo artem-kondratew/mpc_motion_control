@@ -1,0 +1,25 @@
+services:
+    app:
+        image: $IMAGE
+        network_mode: host
+        ipc: host
+        privileged: true
+
+        environment:
+            RMW_IMPLEMENTATION: rmw_cyclonedds_cpp
+            CYCLONEDDS_URI: file:///tmp/cyclonedds.xml
+            VEHICLE_ID: ${VEHICLE_ID}
+        volumes:
+            - /etc/localtime:/etc/localtime:ro
+            - ${HOME}/.cyclone_dds/cyclonedds.xml:/tmp/cyclonedds.xml:ro
+            - /dev:/dev:rw
+            - ~/.gitconfig:/root/.gitconfig:ro
+            - ~/.ssh:/root/.ssh:ro
+            # workspace/src поверх запечённого COPY: правки configs/launch/params живые без ребилда
+            # (colcon --symlink-install). Для C++ всё равно нужен colcon build внутри контейнера.
+            - ../workspace/src:/autoware/src:rw
+        deploy:
+            restart_policy:
+                condition: none
+    tty: true
+

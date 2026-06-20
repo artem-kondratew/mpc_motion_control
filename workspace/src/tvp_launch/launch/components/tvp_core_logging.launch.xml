@@ -1,0 +1,16 @@
+<launch>
+  <arg name="log_dir" default="$(env LOGGING_DIRECTORY)" />
+  <arg name="topics_yaml" default="$(find-pkg-share tvp_launch)/config/logging/topics_whitelist.yaml" />
+  <arg name="nodes_yaml" default="$(find-pkg-share tvp_launch)/config/logging/nodes_whitelist.yaml" />
+
+  <group>
+    <push-ros-namespace namespace="logging" />
+    <include file="$(find-pkg-share ros2parquet)/launch/multi_ros2parquet.launch.py">
+      <arg name="output_dir" value="$(var log_dir)" />
+      <arg name="topics_yaml" value="$(var topics_yaml)" />
+      <arg name="nodes_yaml" value="$(var nodes_yaml)" />
+    </include>
+  </group>
+
+</launch>
+

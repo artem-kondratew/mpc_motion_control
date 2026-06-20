@@ -1,0 +1,36 @@
+# Это основные сервисы, перезапускать их не рекомендуется без полного перезапуска стека
+
+services:
+    ros-daemon:
+        # Что тут происходит в команде:
+        # 1. пробуем остановить daemon (если не запущен - не считаем ошибкой)
+        # 2. пробуем запустить daemon (ошибку не фатализируем, т.к. в некоторых образах возможен non-zero)
+        # 3. держим контейнер живым, а факт готовности проверяем healthcheck-ом
+        command: $CMD "source /autoware/install/setup.bash && ros2 daemon stop && ros2 daemon start && sleep infinity"
+        healthcheck:
+            test: ["CMD-SHELL", "bash -ic 'pgrep -fa \"_ros2_daemon\" >/dev/null'"]
+            interval: 5s   # период тестов
+            timeout: 3s    # даем небольшой запас на загруженной машине
+            retries: 10    # число попыток, после которых ставим fail
+        extends:
+            file: common.yaml
+            service: app
+
+    # cleanup-logging:
+    #     command: $CMD "python3 /autoware/src/ros2parquet/scripts/cleanup_logs.py"
+    #     extends:
+    #         file: common.yaml
+    #         service: app
+    #     volumes:
+    #         - /log_disk/logs:/logs:rw
+
+    wait-init:
+        command: $CMD "sleep infinity"
+        depends_on:
+            ros-daemon:
+                condition: service_healthy
+            # cleanup-logging:
+            #     condition: service_completed_successfully
+        extends:
+            file: common.yaml
+            service: app

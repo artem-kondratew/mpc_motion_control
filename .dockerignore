@@ -1,0 +1,24 @@
+# build context = корень репо (tvp_docker_image/docker-compose.yml: context: ..)
+# COPY берёт только workspace/src — остальное в образ не нужно
+
+.git
+**/.git
+**/build
+**/install
+**/log
+**/__pycache__
+**/*.pyc
+
+# артефакты колcon в локальном workspace
+workspace/build
+workspace/install
+workspace/log
+
+# инфраструктура запуска/сборки (в образ не копируется)
+tvp_docker_image
+ricar-launch
+
+# мусор
+*.zip
+**/core
+**/core.*

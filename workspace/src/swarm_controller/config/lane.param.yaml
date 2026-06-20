@@ -1,0 +1,20 @@
+/**:
+  ros__parameters:
+    trajectory: "lanelet"         # straight | circle | lanelet
+    frame_id: "lio_sam_odom"      # тот же фрейм, что и поза lio_sam (Frenet без TF)
+    path_topic: "/pacemaker/path"
+    pose_topic: "/lio_sam/mapping/odometry"
+    anchor: true                  # привязать полосу к текущей позе робота на старте
+    publish_rate: 10.0
+
+    # straight: прямая длиной length вдоль +x
+    length: 5.0
+    spacing: 0.1                  # шаг точек (общий для straight/circle); плотнее = глаже кривизна
+
+    # circle: окружность радиуса circle_radius (старт по касательной +x, поворот ВЛЕВО)
+    circle_radius: 1.0            # подбери под помещение: диаметр ≈ 2·R
+
+    # lanelet: произвольные waypoints (или trajectory_file — yaml формата pacemaker)
+    waypoints_x: [0.0]
+    waypoints_y: [0.0]
+    trajectory_file: "my_trajectory5.yaml"   # своя нарисованная (лежит в config/); поменяй имя на нужную

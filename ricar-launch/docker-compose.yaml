@@ -1,0 +1,176 @@
+services:
+    vehicle:
+        command: $CMD "source /autoware/install/setup.bash && ros2 launch tvp_launch tvp_core_vehicle.launch.xml"
+        extends:
+            file: common.yaml
+            service: app
+        devices:
+            - /dev:/dev
+        profiles:
+            - all
+            - vehicle
+            - benchmark
+
+    # --- НЕ нужно для turtlebot-MVP (autoware lanelet2-карты) ---
+    # map:
+    #     command: $CMD "source /autoware/install/setup.bash && ros2 launch tvp_launch tvp_core_map.launch.xml"
+    #     extends:
+    #         file: common.yaml
+    #         service: app
+    #     profiles:
+    #         - all
+    #         - map
+    #         - benchmark
+
+    sensing:
+        command: $CMD "source /autoware/install/setup.bash && ros2 launch tvp_launch tvp_core_sensing.launch.xml vehicle_id:=$$VEHICLE_ID"
+        extends:
+            file: common.yaml
+            service: app
+        devices:
+            - /dev:/dev
+        profiles:
+            - all
+            - sensing
+            - benchmark
+
+    localization:
+        command: $CMD "source /autoware/install/setup.bash && ros2 launch tvp_launch tvp_core_localization.launch.xml vehicle_id:=$$VEHICLE_ID"
+        extends:
+            file: common.yaml
+            service: app
+        profiles:
+            - all
+            - localization
+            - benchmark
+
+    # --- НЕ нужно для turtlebot-MVP (autoware/внутренние пакеты отсутствуют в образе) ---
+    # perception:
+    #     command: $CMD "source /autoware/install/setup.bash && ros2 launch tvp_launch tvp_core_perception.launch.xml"
+    #     extends:
+    #         file: common.yaml
+    #         service: app
+    #     profiles:
+    #         - all
+    #         - perception
+
+    # planning:
+    #     command: $CMD "source /autoware/install/setup.bash && ros2 launch tvp_launch tvp_core_planning.launch.xml vehicle_id:=$$VEHICLE_ID"
+    #     extends:
+    #         file: common.yaml
+    #         service: app
+    #     profiles:
+    #         - all
+    #         - planning
+
+    # control: swarm Cruise Control (CC) MPC — этап 1
+    control:
+        command: $CMD "source /autoware/install/setup.bash && ros2 launch tvp_launch tvp_core_control.launch.xml vehicle_id:=$$VEHICLE_ID lateral:=$LATERAL trajectory:=$TRAJECTORY trajectory_file:=$TRAJECTORY_FILE"
+        extends:
+            file: common.yaml
+            service: app
+        profiles:
+            - all
+            - control
+            - benchmark
+
+    # api:
+    #     command: $CMD "source /autoware/install/setup.bash && ros2 launch tvp_launch tvp_core_api.launch.xml"
+    #     extends:
+    #         file: common.yaml
+    #         service: app
+    #     profiles:
+    #         - all
+    #         - api
+    #         - benchmark
+
+    # tools: foxglove_bridge + twist_estimator + empty_perception_publishers (autoware_integration_tools)
+    tools:
+        command: $CMD "source /autoware/install/setup.bash && ros2 launch tvp_launch tvp_core_tools.launch.xml vehicle_id:=$$VEHICLE_ID"
+        extends:
+            file: common.yaml
+            service: app
+        profiles:
+            - all
+            - tools
+            - benchmark
+
+    transforms:
+        command: $CMD "source /autoware/install/setup.bash && ros2 launch tvp_launch tvp_core_transforms.launch.xml vehicle_id:=$$VEHICLE_ID"
+        extends:
+            file: common.yaml
+            service: app
+        profiles:
+            - all
+            - transforms
+            - benchmark
+
+    # visualization:
+    #     command: $CMD "source /autoware/install/setup.bash && ros2 launch tvp_launch tvp_core_visualization.launch.xml"
+    #     extends:
+    #         file: common.yaml
+    #         service: app
+    #     profiles:
+    #         - visualization
+
+    # Сервис для отладки, менять и коммитить рекомендуется его
+    debug:
+        command: $CMD "sleep infinity"
+        extends:
+            file: common.yaml
+            service: app
+        profiles:
+          #            - all
+            - debug
+            - benchmark
+
+    # логирование: rosbag2 (mcap). Пишет топики контроллеров/локализации/полосы
+    # в /logs/auto_<VEHICLE_ID>_<timestamp>. ros2parquet НЕ используется (нет в образе).
+    logging:
+        command: >
+            $CMD 'source /autoware/install/setup.bash &&
+            NS=$${VEHICLE_ID:-alpha} &&
+            OUT=/logs/auto_$${NS}_$$(date +%Y_%m_%d_%H_%M_%S) &&
+            echo "[logging] recording mcap (ns=$$NS) -> $$OUT" &&
+            ros2 bag record --storage mcap -o "$$OUT" --regex
+            "(/$$NS/control/.*|/$$NS/cmd_vel|/$$NS/commands/velocity|/$$NS/odom|/$$NS/lio_sam/mapping/(odometry|path)|/$$NS/sensing/livox/imu|/$$NS/sensing/vehicle_velocity_converter/twist_with_covariance|/tf|/tf_static|/human_triggers)"'
+        extends:
+            file: common.yaml
+            service: app
+        volumes:
+            - /log_disk/logs:/logs:rw
+        environment:
+            LOGGING_MODE: ${LOGGING_MODE}
+            LOGGING_DIRECTORY: ${LOGGING_DIRECTORY}
+        profiles:
+            - all
+            - logging
+
+    # logging_benchmark:
+    #     command: >
+    #         $CMD 'source /autoware/install/setup.bash &&
+    #         { ros2 launch tvp_launch tvp_core_logging.launch.xml
+    #         topics_yaml:=/autoware/install/tvp_launch/share/tvp_launch/config/logging/topics_whitelist_benchmark.yaml
+    #         nodes_yaml:=/autoware/install/tvp_launch/share/tvp_launch/config/logging/nodes_whitelist_benchmark.yaml
+    #         & } &&
+    #         LAUNCH_PID=$$! && sleep 10 &&
+    #         ros2 action send_goal /logging/param_snapshot ros2parquet_msgs/action/ParamSnapshot "{trigger: true}" --feedback ; wait $$LAUNCH_PID'
+    #     extends:
+    #         file: common.yaml
+    #         service: app
+    #     volumes:
+    #         - /log_disk/logs:/logs:rw
+    #     environment:
+    #         LOGGING_MODE: ${LOGGING_MODE}
+    #         LOGGING_DIRECTORY: ${LOGGING_DIRECTORY}
+    #     profiles:
+    #         - logging_benchmark
+    #         - benchmark
+
+    # benchmark_container:
+    #     command: $CMD "source /autoware/install/setup.bash && ros2 launch control_benchmark external_planning_pipeline.launch.xml"
+    #     extends:
+    #         file: common.yaml
+    #         service: app
+    #     profiles:
+    #         - benchmark

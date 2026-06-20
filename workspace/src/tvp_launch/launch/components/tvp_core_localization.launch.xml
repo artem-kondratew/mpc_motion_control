@@ -1,0 +1,18 @@
+<launch>
+  <arg name="vehicle_id" default="alpha" description="префикс робота: namespace + TF-фреймы (2+ роботов в одной сети)"/>
+
+  <!-- TurtleBot2 localization: LIO-SAM (lidar-inertial odometry + mapping) -->
+  <!--
+       Заменяет автомобильный autoware-стек локализации:
+       fast_lio + NDT scan matcher + GNSS(novatel) + EKF + pointcloud-map.
+  -->
+  <group>
+    <!-- namespacing: /<vehicle_id>/lio_sam/...; TF-фреймы lio_sam префиксованы через framePrefix.
+         Подписки sensor (sensing/livox/*) относительные -> /<vehicle_id>/sensing/livox/*. -->
+    <push-ros-namespace namespace="$(var vehicle_id)"/>
+    <include file="$(find-pkg-share lio_sam)/launch/run.launch.py">
+      <arg name="frame_prefix" value="$(var vehicle_id)/"/>
+    </include>
+  </group>
+
+</launch>

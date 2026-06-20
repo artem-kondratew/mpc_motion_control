@@ -1,0 +1,8 @@
+/**:
+  ros__parameters:
+    robot_length: 1.6
+    robot_width: 1.2
+    robot_height: 1.4
+
+    trajectory_color: [79., 88., 212., 1.0]
+    trajectory_scale: 0.1

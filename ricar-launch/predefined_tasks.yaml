@@ -1,0 +1,33 @@
+---
+
+# Файл для конфигурации предопределенных команд через ricar
+
+# Placehodlers аргументов для команд:
+# __placeholder_1__
+# __placeholder_2__
+# __placeholder_N__
+
+# Формат заполнения конфигурации:
+# <имя_команды>:
+#     desc: <текстовое описание команды>
+#     service: <сервис для запуска команды>
+#     long_command: <true | false -- нужно для обработки аргументов при нефиксированном вводе> 
+#     task: <bash-команда для выполнения внутри контейнера>
+
+trigger:
+    desc: "Отправить в топик /human_triggers текстовое сообщение"
+    service: logging
+    long_command: true
+    task: 'ros2 topic pub --once --qos-reliability reliable --qos-durability volatile /human_triggers std_msgs/msg/String "{data: __placeholder_1__}"'
+
+start_record:
+    desc: "начать запись rosbag"
+    service: logging
+    long_command: true
+    task: 'ros2 service call /logging/bag_recorder_node/start ros2parquet_msgs/srv/StartRecording "bag_name: __placeholder_1__"'
+
+stop_record:
+    desc: "остановить запись rosbag"
+    service: logging
+    long_command: false
+    task: 'ros2 service call /logging/bag_recorder_node/stop std_srvs/srv/Trigger'

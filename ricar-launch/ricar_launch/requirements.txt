@@ -1,0 +1,5 @@
+argparse
+argcomplete
+pyyaml
+pytest
+pytest-mock

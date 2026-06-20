@@ -5,3 +5,8 @@ log
 __pycache__
 .env
 core.*
+
+# upstream lio_sam demo-ассеты (gif/pdf, ~64МБ) — роботу не нужны
+workspace/src/lio_sam/config/doc/
+# saved point clouds (lio_sam savePCD / тестовые карты) — не нужны в репо
+*.pcd

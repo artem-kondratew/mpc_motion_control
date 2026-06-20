@@ -1,0 +1,52 @@
+<launch>
+  <arg name="vehicle_id" default="alpha" description="префикс робота: namespace + TF-фреймы (2+ роботов в одной сети)"/>
+  <arg name="lateral" default="true" description="удержание в полосе (lateral MPC) поверх CC; false = только CC"/>
+  <arg name="trajectory" default="lanelet" description="форма полосы: line | circle | lanelet"/>
+  <arg name="trajectory_file" default="my_trajectory1.yaml" description="файл waypoints для lanelet (лежит в swarm_controller/config/)"/>
+
+  <group>
+    <!-- namespacing: всё под /<vehicle_id>/control/...; имена нод и диагностика (v_ref/e_lat/...) префиксуются.
+         Кросс-компонентные топики (cmd_vel/odom/поза lio_sam) заданы абсолютно с /$(var vehicle_id)/. -->
+    <push-ros-namespace namespace="$(var vehicle_id)"/>
+    <push-ros-namespace namespace="control"/>
+
+    <!-- lateral OFF: CC напрямую в /<vehicle_id>/cmd_vel (этап 1) -->
+    <group unless="$(var lateral)">
+      <node pkg="swarm_controller" exec="swarm_cc_mpc_node" name="swarm_cc_mpc_node" output="screen">
+        <param from="$(find-pkg-share swarm_controller)/config/cc_mpc.param.yaml"/>
+        <param name="odom_topic" value="/$(var vehicle_id)/odom"/>
+        <param name="cmd_vel_topic" value="/$(var vehicle_id)/cmd_vel"/>
+      </node>
+    </group>
+
+    <!-- lateral ON: CC -> /<vehicle_id>/control/long_cmd; lane_publisher + lat MPC -> /<vehicle_id>/cmd_vel -->
+    <group if="$(var lateral)">
+      <!-- продольный: CC, выход переориентирован на промежуточный long_cmd -->
+      <node pkg="swarm_controller" exec="swarm_cc_mpc_node" name="swarm_cc_mpc_node" output="screen">
+        <param from="$(find-pkg-share swarm_controller)/config/cc_mpc.param.yaml"/>
+        <param name="odom_topic" value="/$(var vehicle_id)/odom"/>
+        <param name="cmd_vel_topic" value="/$(var vehicle_id)/control/long_cmd"/>
+      </node>
+
+      <!-- источник полосы -> /<vehicle_id>/control/pacemaker/path; поза lio_sam и frame_id префиксованы -->
+      <node pkg="swarm_controller" exec="lane_publisher" name="lane_publisher" output="screen">
+        <param from="$(find-pkg-share swarm_controller)/config/lane.param.yaml"/>
+        <param name="path_topic" value="/$(var vehicle_id)/control/pacemaker/path"/>
+        <param name="pose_topic" value="/$(var vehicle_id)/lio_sam/mapping/odometry"/>
+        <param name="frame_id" value="$(var vehicle_id)/lio_sam_odom"/>
+        <param name="trajectory" value="$(var trajectory)"/>
+        <param name="trajectory_file" value="$(var trajectory_file)"/>
+      </node>
+
+      <!-- боковой: lat MPC, объединяет v (long_cmd) + w (MPC) -> /<vehicle_id>/cmd_vel -->
+      <node pkg="swarm_controller" exec="swarm_lat_mpc_node" name="swarm_lat_mpc_node" output="screen">
+        <param from="$(find-pkg-share swarm_controller)/config/lat_mpc.param.yaml"/>
+        <param name="long_cmd_topic" value="/$(var vehicle_id)/control/long_cmd"/>
+        <param name="cmd_vel_topic" value="/$(var vehicle_id)/cmd_vel"/>
+        <param name="pacemaker_path_topic" value="/$(var vehicle_id)/control/pacemaker/path"/>
+        <param name="pose_topic" value="/$(var vehicle_id)/lio_sam/mapping/odometry"/>
+        <param name="odom_topic" value="/$(var vehicle_id)/odom"/>
+      </node>
+    </group>
+  </group>
+</launch>

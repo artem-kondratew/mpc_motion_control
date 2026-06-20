@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+  <arg name="vehicle_id" default="alpha" description="префикс робота: namespace + TF-фреймы (2+ роботов в одной сети)"/>
+
+  <!-- ОТКЛЮЧЕНО для turtlebot-MVP: autoware_control_performance_analysis тянет
+       vehicle_info из robot_configs (внутр. gitlab, нет в образе) и слушает control/planning-топики,
+       которых на turtlebot нет. Включать только при полном autoware-стеке. -->
+  <!--
+  <arg name="control_performance_analysis_param_path" default="$(find-pkg-share tvp_launch)/config/tools/control_performance_analysis.param.yaml"/>
+  <arg name="input/reference_trajectory" default="/planning/trajectory"/>
+  <arg name="input/control_raw" default="/control/command/control_cmd"/>
+  <arg name="input/measured_steering" default="/vehicle/status/steering_status"/>
+  <arg name="input/current_odometry" default="/localization/kinematic_state"/>
+  <arg name="output/error_stamped" default="control_performance/performance_vars"/>
+  <arg name="output/driving_status_stamped" default="control_performance/driving_status"/>
+  <arg name="vehicle_info_param_file" default="$(find-pkg-share robot_configs)/$(var vehicle_id)/description/vehicle/vehicle_info.param.yaml"/>
+
+  <group>
+    <push-ros-namespace namespace="metrics"/>
+    <node pkg="autoware_control_performance_analysis" exec="autoware_control_performance_analysis_node" name="control_performance_analysis" output="screen" respawn="True">
+      <param from="$(var control_performance_analysis_param_path)"/>
+      <param from="$(var vehicle_info_param_file)"/>
+
+      <remap from="~/input/reference_trajectory" to="$(var input/reference_trajectory)"/>
+      <remap from="~/input/control_raw" to="$(var input/control_raw)"/>
+      <remap from="~/input/measured_steering" to="$(var input/measured_steering)"/>
+      <remap from="~/input/odometry" to="$(var input/current_odometry)"/>
+      <remap from="~/output/error_stamped" to="$(var output/error_stamped)"/>
+      <remap from="~/output/driving_status_stamped" to="$(var output/driving_status_stamped)"/>
+    </node>
+  </group>
+  -->
+
+  <!-- namespacing: foxglove_bridge и twist_estimator под /<vehicle_id>/...; TF глобальный (/tf),
+       поэтому twist_estimator находит префиксованные фреймы через frame_prefix.
+       Кросс-компонентные топики (lio_sam odom, twist) — абсолютные с topic_prefix=/<vehicle_id>. -->
+  <group>
+    <push-ros-namespace namespace="$(var vehicle_id)"/>
+    <include file="$(find-pkg-share tvp_launch)/launch/components/other/foxglove_bridge.launch.xml"/>
+
+    <!-- «фигурка» робота маркерами (корпус+лидар+стрелка) -> /<vehicle_id>/robot_marker -->
+    <node pkg="swarm_controller" exec="robot_marker" name="robot_marker" output="screen">
+      <param name="frame_id" value="$(var vehicle_id)/base_footprint"/>
+    </node>
+  </group>
+
+  <group>
+    <push-ros-namespace namespace="$(var vehicle_id)"/>
+    <push-ros-namespace namespace="localization"/>
+    <include file="$(find-pkg-share autoware_integration_tools)/launch/twist_estimator.launch.py">
+      <arg name="frame_prefix" value="$(var vehicle_id)/"/>
+      <arg name="topic_prefix" value="/$(var vehicle_id)"/>
+    </include>
+  </group>
+
+</launch>

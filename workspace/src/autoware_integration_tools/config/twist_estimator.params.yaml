@@ -1,0 +1,15 @@
+/**:
+  ros__parameters:
+    # lio_sam отдаёт позу ЛИДАРА (не imu) → лидарный фрейм
+    odometry_frame: lidar_70
+    base_link_frame: base_link
+
+    velocity_stddev_xx: 0.2          # Linear velocity standard deviation [m/s]
+    angular_velocity_stddev_zz: 0.1  # Angular velocity standard deviation [rad/s]
+    
+    # Low-pass filter parameters
+    filter_cutoff_frequency: 5.0     # Cutoff frequency for low-pass filter [Hz]
+    enable_filtering: true           # Enable/disable low-pass filtering
+
+    alpha_linear: 0.01               # alpha * new_value + (1.0 - alpha) * filtered_value
+    alpha_angular: 0.1

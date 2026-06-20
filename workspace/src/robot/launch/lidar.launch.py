@@ -1,5 +1,12 @@
+import os
+
 from launch import LaunchDescription
 from launch_ros.actions import Node
+
+
+robot_id = os.environ.get("ROBOT_ID", "unknown")
+
+namespace = f"robot{robot_id}"
 
 
 lidar_transform = Node(
@@ -13,9 +20,10 @@ lidar_transform = Node(
         '--roll', '0.0',
         '--pitch', '0.0',
         '--yaw', '3.14',
-        '--frame-id', 'base_footprint',
+        '--frame-id', f'{namespace}/base_footprint',
         '--child-frame-id', 'lidar',
-    ]
+    ],
+    namespace=namespace,
 )
 
 
@@ -29,9 +37,10 @@ lidar_node = Node(
         {'angle_compensate': True},
         {'scan_mode': 'Standard'},
         {'serial_baudrate': 115200},
-        {'scan_frequency': 10.0},
+        {'scan_frequency': 100.0},
         {'sample_rate': 1},
-    ]
+    ],
+    namespace=namespace,
 )
 
 

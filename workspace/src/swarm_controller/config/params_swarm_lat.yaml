@@ -1,0 +1,49 @@
+# Parameters for the lateral MPC follower node (swarm_lat_mpc_node).
+#
+# Loaded ALONGSIDE params{N}.yaml (which provides topics, frames, robot_id,
+# pacemaker_id, start) and works on top of the longitudinal controller —
+# subscribes to /robot{N}/long_cmd (Twist), takes its linear.x as-is, and
+# overrides angular.z with the MPC's output.
+
+/**:
+  ros__parameters:
+    # ── plant: 1st-order angular actuator lag ─────────────────────────
+    # Identified on hardware via step response (±1 rad/s, transient
+    # ~0.1-0.15 s). No 2nd-order ringing observed.
+    tau_w: 0.03      # angular-velocity time constant [s]
+
+    # ── MPC tuning ────────────────────────────────────────────────────
+    # Control input is ANGULAR ACCELERATION (α_cmd).  The MPC has an
+    # integrator on the angular command: w_cmd_dot = α_cmd.  Move
+    # suppression on Δα_cmd directly bounds angular jerk.
+    ts: 0.05         # control period [s], must match controller cycle
+    p: 40            # prediction horizon (1.0 s look-ahead)
+    c: 30            # control horizon (≤ p)
+    s: 5.0           # move-suppression weight on Δα_cmd.  Lower than
+                     # long-MPC's 20 because lat plant has natural
+                     # damping via e ← v·e_θ ← w chain.  With κ-profile
+                     # feed-forward, MPC anticipates sign-flips and
+                     # doesn't need extra `s` to damp blind reactions.
+
+    # Output is 3-D: [e, e_θ, α]   where α = (w_cmd − w)/τ_w.
+    # α is "physical angular acceleration", linear in state and ZERO in
+    # steady state (clean cost).
+    phi_vals: [0.6, 0.95, 0.6]         # reference shaping (3 outputs)
+    q_vals:   [10.0, 1.0, 0.0]         # [q_e, q_e_θ, q_α]
+                                       # q_α = 0 — move suppression `s`
+                                       # provides damping; q_α > 0 caused
+                                       # ringing in tuning sweeps.
+
+    # ── constraints ───────────────────────────────────────────────────
+    alpha_min: -2.0   # min commanded angular acceleration [rad/s²]
+    alpha_max:  2.0   # max commanded angular acceleration [rad/s²]
+    w_cmd_min: -1.5   # min commanded angular velocity [rad/s]
+    w_cmd_max:  1.5   # max commanded angular velocity [rad/s]
+
+    # ── runtime safety ────────────────────────────────────────────────
+    # topic names below are placeholders; launch file overrides per robot_id
+    long_cmd_topic:       /long_cmd
+    cmd_vel_topic:        /cmd_vel
+    odom_topic:           /odom
+    pacemaker_path_topic: /pacemaker/path
+    telemetry_timeout: 0.5   # [s] stop if long_cmd or path stale

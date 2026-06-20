@@ -1,0 +1,42 @@
+services:
+  tvp_image:
+    build:
+      context: ..
+      dockerfile: tvp_docker_image/Dockerfile
+      network: host
+      args:
+        - VEHICLE_ID=$VEHICLE_ID
+    image: tvp_image:latest
+    container_name: tvp_image
+    network_mode: host
+    ipc: host
+    privileged: true
+
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ${HOME}/.cyclone_dds/cyclonedds.xml:/root/cyclonedds.xml:ro
+      - ~/.gitconfig:/root/.gitconfig:ro
+      - ~/.ssh:/root/.ssh:ro
+      - ./check_repos.sh:/autoware/check_repos.sh:ro
+      - /log_disk/logs:/logs:rw
+      - /dev:/dev:rw
+      # workspace/src смонтирован поверх запечённого COPY: правки configs/launch/params
+      # подхватываются без ребилда (colcon --symlink-install). Для C++ всё равно нужен colcon build.
+      - ../workspace/src:/autoware/src:rw
+
+    environment:
+      - QT_X11_NO_MITSHM=1
+      - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+      - CYCLONEDDS_URI=file:///root/cyclonedds.xml
+
+    working_dir: /autoware
+
+    tty: true
+    stdin_open: true
+    entrypoint: []
+
+    healthcheck:
+      test: ["CMD", "ros2", "--help"]
+      interval: 30s
+      timeout: 10s
+      retries: 3

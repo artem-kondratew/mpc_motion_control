@@ -1,4 +1,4 @@
-slam_toolbox:
+/**:
   ros__parameters:
 
     # Plugin params
@@ -10,10 +10,10 @@ slam_toolbox:
     ceres_loss_function: None
 
     # ROS Parameters
-    odom_frame: odom
-    map_frame: map
-    base_frame: base_footprint
-    scan_topic: /scan
+    odom_frame: robot2/odom
+    map_frame: robot2/map
+    base_frame: robot2/base_footprint
+    scan_topic: /robot2/scan
     use_map_saver: true
     mode: mapping #localization
 
@@ -28,7 +28,7 @@ slam_toolbox:
     throttle_scans: 1
     transform_publish_period: 0.02 #if 0 never publishes odometry
     map_update_interval: 0.5
-    resolution: 0.01
+    resolution: 0.03
     max_laser_range: 12.0 #for rastering images
     minimum_time_interval: 0.5
     transform_timeout: 0.2

@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+  <!-- Essential parameters -->
+  <arg name="vehicle_id" description="robot config id"/>
+
+  <!-- <arg name="sensor_model" description="sensor model name"/> -->
+  <arg name="use_rosbag" default="false" description="true if rosbag is in use instead of sensor kit"/>
+
+  <!-- Optional parameters -->
+  <!-- Modules to be launched -->
+  <arg name="launch_map" default="true" description="launch map"/>
+  <arg name="launch_sensing" default="true" description="launch sensing"/>
+  <arg name="launch_localization" default="true" description="launch localization"/>
+  <arg name="launch_perception" default="true" description="launch perception"/>
+  <arg name="launch_planning" default="true" description="launch planning"/>
+  <arg name="launch_control" default="true" description="launch control"/>
+  <arg name="launch_vehicle" default="true" description="launch vehicle"/>
+  <arg name="launch_api" default="true" description="launch api"/>
+  <arg name="launch_visualization" default="false" description="launch visualization"/>
+
+  <!-- Map -->
+  <group if="$(var launch_map)">
+    <include file="$(find-pkg-share tvp_launch)/launch/components/tvp_core_map.launch.xml">
+    </include>
+  </group>
+
+  <!-- Sensing -->
+  <group if="$(var launch_sensing)">
+    <include file="$(find-pkg-share tvp_launch)/launch/components/tvp_core_sensing.launch.xml">
+      <arg name="use_rosbag" value="$(var use_rosbag)"/>
+      <arg name="vehicle_id" value="$(var vehicle_id)"/>
+    </include>
+  </group>
+
+  <!-- Localization -->
+  <group if="$(var launch_localization)">
+    <include file="$(find-pkg-share tvp_launch)/launch/components/tvp_core_localization.launch.xml"/>
+  </group>
+
+  <!-- Perception -->
+  <group if="$(var launch_perception)">
+    <include file="$(find-pkg-share tvp_launch)/launch/components/tvp_core_perception.launch.xml">
+    </include>
+  </group>
+
+  <!-- Planning -->
+  <group if="$(var launch_planning)">
+    <include file="$(find-pkg-share tvp_launch)/launch/components/tvp_core_planning.launch.xml">
+      <arg name="vehicle_id" value="$(var vehicle_id)"/>
+    </include>
+  </group>
+
+  <!-- Control -->
+  <group if="$(var launch_control)">
+    <include file="$(find-pkg-share tvp_launch)/launch/components/tvp_core_control.launch.xml">
+      <arg name="vehicle_id" value="$(var vehicle_id)"/>
+    </include>
+  </group>
+
+  <group if="$(var launch_vehicle)">
+    <include file="$(find-pkg-share tvp_launch)/launch/components/tvp_core_vehicle.launch.xml">
+    </include>
+  </group>
+
+  <group if="$(var launch_api)">
+    <include file="$(find-pkg-share tvp_launch)/launch/components/tvp_core_api.launch.xml"/>
+  </group>
+
+  <!-- TF tree -->
+  <group>
+    <include file="$(find-pkg-share tvp_launch)/launch/components/tvp_core_transforms.launch.xml">
+      <arg name="vehicle_id" value="$(var vehicle_id)"/>
+    </include>
+  </group>
+
+  <!-- Tools -->
+  <group>
+    <include file="$(find-pkg-share tvp_launch)/launch/components/tvp_core_tools.launch.xml">
+      <arg name="launch_perception" value="$(var launch_perception)"/>
+      <arg name="vehicle_id" value="$(var vehicle_id)"/>
+    </include>
+  </group>
+
+  <!-- Vizualization -->
+  <group if="$(var launch_visualization)">
+    <include file="$(find-pkg-share tvp_launch)/launch/components/tvp_core_visualization.launch.xml"/>
+  </group>
+ 
+
+</launch>
