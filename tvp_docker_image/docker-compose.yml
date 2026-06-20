@@ -6,7 +6,7 @@ services:
       network: host
       args:
         - VEHICLE_ID=$VEHICLE_ID
-    image: tvp_image:latest
+    image: tvp_image:alpha
     container_name: tvp_image
     network_mode: host
     ipc: host
