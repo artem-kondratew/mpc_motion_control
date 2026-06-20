@@ -4,6 +4,8 @@ install
 log
 __pycache__
 .env
+# ricar-launch/.env трекаем (IMAGE/CMD + тумблеры LATERAL/TRAJECTORY), нужен стеку
+!ricar-launch/.env
 core.*
 
 # upstream lio_sam demo-ассеты (gif/pdf, ~64МБ) — роботу не нужны
