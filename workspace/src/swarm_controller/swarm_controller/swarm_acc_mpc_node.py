@@ -13,6 +13,7 @@ import rclpy
 from rclpy.node import Node
 
 from geometry_msgs.msg import Twist
+from std_msgs.msg import Float64
 from swarm_msgs.msg import Telemetry
 
 from .submodules.swarm_acc_mpc import SwarmAccController
@@ -49,6 +50,11 @@ class SwarmAccMpcNode(Node):
             ('gap_safe',  0.2),
             # angular
             ('kp_theta', 0.3),
+            # curve slowdown: кап v_cmd по пределу кривизны от lat-ноды (как у CC).
+            # На повороте ведомый не разгоняется закрывать зазор, пока он на дуге.
+            ('curve_slowdown', True),
+            ('v_curve_topic', 'v_curve'),     # относительный -> /<vehicle_id>/control/v_curve
+            ('v_curve_timeout', 0.5),
             # safety
             ('start', False),
             ('telemetry_timeout', 0.5),
@@ -78,6 +84,13 @@ class SwarmAccMpcNode(Node):
         self.kp_theta = float(self.get_parameter('kp_theta').value)
         self.telemetry_timeout = float(self.get_parameter('telemetry_timeout').value)
         self.ts = float(ts)
+
+        # curve slowdown (кап v_cmd по v_curve от lat-ноды)
+        self.curve_slowdown = bool(self.get_parameter('curve_slowdown').value)
+        self.v_curve_topic = self.get_parameter('v_curve_topic').value
+        self.v_curve_timeout = float(self.get_parameter('v_curve_timeout').value)
+        self._v_curve = None
+        self._v_curve_stamp = None
 
         self.get_logger().info(f'[swarm_acc_mpc] robot_id={self.robot_id}')
         self.get_logger().info(f'  telemetry_topic: {self.telemetry_topic}')
@@ -112,6 +125,8 @@ class SwarmAccMpcNode(Node):
         self.cmd_pub = self.create_publisher(Twist, self.cmd_vel_topic, 10)
         self.create_subscription(
             Telemetry, self.telemetry_topic, self._telemetry_cb, 10)
+        self.create_subscription(
+            Float64, self.v_curve_topic, self._v_curve_cb, 10)
 
         self.create_timer(ts, self._control_step)
         self.get_logger().info('[swarm_acc_mpc] ready, waiting for telemetry...')
@@ -119,6 +134,19 @@ class SwarmAccMpcNode(Node):
     def _telemetry_cb(self, msg: Telemetry) -> None:
         self.last_telemetry = msg
         self.last_telemetry_stamp = self.get_clock().now()
+
+    def _v_curve_cb(self, msg: Float64) -> None:
+        self._v_curve = float(msg.data)
+        self._v_curve_stamp = self.get_clock().now()
+
+    def _apply_curve_cap(self, v_cmd: float) -> float:
+        """Кап v_cmd по пределу кривизны: min(v_cmd, v_curve) при свежем v_curve."""
+        if (self.curve_slowdown and self._v_curve is not None
+                and self._v_curve_stamp is not None):
+            age = (self.get_clock().now() - self._v_curve_stamp).nanoseconds * 1e-9
+            if age <= self.v_curve_timeout:
+                return min(v_cmd, self._v_curve)
+        return v_cmd
 
     def _control_step(self) -> None:
         started = bool(self.get_parameter('start').value)
@@ -170,6 +198,8 @@ class SwarmAccMpcNode(Node):
         self._v_cmd_published += self.ts * a_cmd
         self._v_cmd_published = float(np.clip(
             self._v_cmd_published, self.v_cmd_min, self.v_cmd_max))
+        # кап по кривизне (lat-нода): не разгоняемся закрывать зазор на дуге
+        self._v_cmd_published = self._apply_curve_cap(self._v_cmd_published)
 
         # ── angular control: rotate toward peer ─────────────────────────────
         az_global = float(np.arctan2(dx_vec[1], dx_vec[0]))

@@ -1,0 +1,41 @@
+/**:
+  ros__parameters:
+    # topics — переопределяются в launch абсолютными /<vehicle_id>/...:
+    #   telemetry_topic <- /<id>/control/telemetry (от acc_telemetry)
+    #   cmd_vel_topic   <- /<id>/control/long_cmd  (продольный канал, дальше lat MPC)
+    #   v_curve_topic   <- v_curve (относительный -> /<id>/control/v_curve)
+
+    # plant (kinematic, adas-style) — как у CC
+    tau: 0.2
+
+    # gap policy: y_gap = dx − d0 − th·v
+    d0: 0.5          # минимальный зазор при v=0 [m]
+    th: 1.0          # time headway [s] (зазор растёт со скоростью)
+
+    # MPC (n_out = 4: [y_gap, v_rel, a, j])
+    ts: 0.05
+    p: 20
+    c: 10
+    s: 3.0
+    phi_vals: [0.6, 0.95, 0.6, 0.6]
+    q_vals:   [10.0, 1.0, 1.0, 1.0]
+
+    # ограничения
+    a_min:     -0.5
+    a_max:      0.5
+    v_cmd_min:  0.0
+    v_cmd_max:  0.5
+    gap_safe:   0.2   # ЖЁСТКО: dx ≥ gap_safe
+
+    # угловой член ACC не используется (lateral держит курс по полосе; в 1-D
+    # кодировке Telemetry peer на оси +x, theta=0 -> w_cmd ACC = 0). kp_theta не важен.
+    kp_theta: 0.0
+
+    # замедление на кривизне: кап v_cmd = min(v_cmd, v_curve) от lat-ноды
+    curve_slowdown: true
+    v_curve_topic: "v_curve"
+    v_curve_timeout: 0.5
+
+    # safety
+    start: false              # kill-switch: пока false — нода не публикует
+    telemetry_timeout: 0.5    # нет свежей Telemetry -> стоп

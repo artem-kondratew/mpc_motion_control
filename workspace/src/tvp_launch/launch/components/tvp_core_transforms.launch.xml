@@ -6,6 +6,16 @@
        default="$(find-pkg-share kobuki_description)/urdf/kobuki_standalone.urdf.xacro"
        description="path to the file of model settings (*.xacro)"/>
 
+  <!-- ACC: статическая стыковка карт двух роботов. Раздельные lio_sam-карты
+       (<id>/lio_sam_odom и <peer_id>/lio_sam_odom) связываются известным начальным
+       оффсетом (поза старта лидера в системе ведомого, из .env). Нужен на ВЕДОМОМ;
+       лидер (alpha) запускается с peer_tf=false. -->
+  <arg name="peer_tf" default="false" description="публиковать статик-TF к фрейму лидера (ACC, на ведомом)"/>
+  <arg name="peer_id" default="alpha" description="vehicle_id лидера"/>
+  <arg name="peer_tf_x" default="0.0"/>
+  <arg name="peer_tf_y" default="0.0"/>
+  <arg name="peer_tf_yaw" default="0.0"/>
+
   <group>
     <!-- namespacing: все TF под /<vehicle_id>/tf; URDF-фреймы префиксованы через frame_prefix -->
     <push-ros-namespace namespace="$(var vehicle_id)"/>
@@ -33,5 +43,11 @@
     <node pkg="tf2_ros" exec="static_transform_publisher" name="lidar_link_to_vehicle_tf"
           args="--x 0.0 --y 0.0 --z 0.0 --roll 0.0 --pitch 0.0 --yaw 0.0
                 --frame-id $(var vehicle_id)/lidar_link --child-frame-id $(var vehicle_id)"/>
+
+    <!-- ACC: стыковка карт. <p>lio_sam_odom -> <peer_id>/lio_sam_odom (оффсет старта лидера). -->
+    <node if="$(var peer_tf)" pkg="tf2_ros" exec="static_transform_publisher" name="peer_map_anchor_tf"
+          args="--x $(var peer_tf_x) --y $(var peer_tf_y) --z 0.0
+                --roll 0.0 --pitch 0.0 --yaw $(var peer_tf_yaw)
+                --frame-id $(var vehicle_id)/lio_sam_odom --child-frame-id $(var peer_id)/lio_sam_odom"/>
   </group>
 </launch>

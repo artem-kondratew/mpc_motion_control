@@ -1,8 +1,17 @@
 <launch>
   <arg name="vehicle_id" default="alpha" description="префикс робота: namespace + TF-фреймы (2+ роботов в одной сети)"/>
-  <arg name="lateral" default="true" description="удержание в полосе (lateral MPC) поверх CC; false = только CC"/>
+  <arg name="lateral" default="true" description="удержание в полосе (lateral MPC) поверх продольного; false = только продольный"/>
   <arg name="trajectory" default="lanelet" description="форма полосы: line | circle | lanelet"/>
   <arg name="trajectory_file" default="my_trajectory1.yaml" description="файл waypoints для lanelet (лежит в swarm_controller/config/)"/>
+
+  <!-- продольный контур: cc = круиз-контроль (свой v_ref) | acc = адаптивный (зазор за лидером) -->
+  <arg name="longitudinal" default="cc" description="cc | acc"/>
+  <!-- ACC: лидер, которого трекаем (зеркало его топиков /<peer_id>/... от v2v_receiver) -->
+  <arg name="peer_id" default="alpha" description="vehicle_id лидера (для ACC)"/>
+  <!-- ACC: статический оффсет — поза старта лидера в системе ведомого (из .env) -->
+  <arg name="peer_tf_x" default="0.0"/>
+  <arg name="peer_tf_y" default="0.0"/>
+  <arg name="peer_tf_yaw" default="0.0"/>
 
   <group>
     <!-- namespacing: всё под /<vehicle_id>/control/...; имена нод и диагностика (v_ref/e_lat/...) префиксуются.
@@ -19,26 +28,59 @@
       </node>
     </group>
 
-    <!-- lateral ON: CC -> /<vehicle_id>/control/long_cmd; lane_publisher + lat MPC -> /<vehicle_id>/cmd_vel -->
+    <!-- lateral ON: продольный (CC или ACC) -> /<vehicle_id>/control/long_cmd; lat MPC -> /<vehicle_id>/cmd_vel -->
     <group if="$(var lateral)">
-      <!-- продольный: CC, выход переориентирован на промежуточный long_cmd -->
-      <node pkg="swarm_controller" exec="swarm_cc_mpc_node" name="swarm_cc_mpc_node" output="screen">
-        <param from="$(find-pkg-share swarm_controller)/config/cc_mpc.param.yaml"/>
-        <param name="odom_topic" value="/$(var vehicle_id)/odom"/>
-        <param name="cmd_vel_topic" value="/$(var vehicle_id)/control/long_cmd"/>
-      </node>
 
-      <!-- источник полосы -> /<vehicle_id>/control/pacemaker/path; поза lio_sam и frame_id префиксованы -->
-      <node pkg="swarm_controller" exec="lane_publisher" name="lane_publisher" output="screen">
-        <param from="$(find-pkg-share swarm_controller)/config/lane.param.yaml"/>
-        <param name="path_topic" value="/$(var vehicle_id)/control/pacemaker/path"/>
-        <param name="pose_topic" value="/$(var vehicle_id)/lio_sam/mapping/odometry"/>
-        <param name="frame_id" value="$(var vehicle_id)/lio_sam_odom"/>
-        <param name="trajectory" value="$(var trajectory)"/>
-        <param name="trajectory_file" value="$(var trajectory_file)"/>
-      </node>
+      <!-- ── продольный CC: свой v_ref ───────────────────────────────────────── -->
+      <group if="$(eval &quot;'$(var longitudinal)' == 'cc'&quot;)">
+        <node pkg="swarm_controller" exec="swarm_cc_mpc_node" name="swarm_cc_mpc_node" output="screen">
+          <param from="$(find-pkg-share swarm_controller)/config/cc_mpc.param.yaml"/>
+          <param name="odom_topic" value="/$(var vehicle_id)/odom"/>
+          <param name="cmd_vel_topic" value="/$(var vehicle_id)/control/long_cmd"/>
+        </node>
 
-      <!-- боковой: lat MPC, объединяет v (long_cmd) + w (MPC) -> /<vehicle_id>/cmd_vel -->
+        <!-- источник полосы -> /<vehicle_id>/control/pacemaker/path; поза lio_sam и frame_id префиксованы -->
+        <node pkg="swarm_controller" exec="lane_publisher" name="lane_publisher" output="screen">
+          <param from="$(find-pkg-share swarm_controller)/config/lane.param.yaml"/>
+          <param name="path_topic" value="/$(var vehicle_id)/control/pacemaker/path"/>
+          <param name="pose_topic" value="/$(var vehicle_id)/lio_sam/mapping/odometry"/>
+          <param name="frame_id" value="$(var vehicle_id)/lio_sam_odom"/>
+          <param name="trajectory" value="$(var trajectory)"/>
+          <param name="trajectory_file" value="$(var trajectory_file)"/>
+        </node>
+      </group>
+
+      <!-- ── продольный ACC: зазор за лидером (peer) через UDP-телеметрию ──────── -->
+      <group if="$(eval &quot;'$(var longitudinal)' == 'acc'&quot;)">
+        <!-- строит Telemetry (зазор вдоль полосы) + переносит полосу лидера в свой фрейм -->
+        <node pkg="swarm_controller" exec="acc_telemetry" name="acc_telemetry" output="screen">
+          <param name="vehicle_id" value="$(var vehicle_id)"/>
+          <param name="peer_id" value="$(var peer_id)"/>
+          <param name="peer_pose_topic" value="/$(var peer_id)/lio_sam/mapping/odometry"/>
+          <param name="peer_vel_topic" value="/$(var peer_id)/odom"/>
+          <param name="peer_path_topic" value="/$(var peer_id)/control/pacemaker/path"/>
+          <param name="self_pose_topic" value="/$(var vehicle_id)/lio_sam/mapping/odometry"/>
+          <param name="self_odom_topic" value="/$(var vehicle_id)/odom"/>
+          <param name="telemetry_topic" value="telemetry"/>
+          <param name="path_topic" value="pacemaker/path"/>
+          <param name="frame_id" value="$(var vehicle_id)/lio_sam_odom"/>
+          <param name="peer_tf_x" value="$(var peer_tf_x)"/>
+          <param name="peer_tf_y" value="$(var peer_tf_y)"/>
+          <param name="peer_tf_yaw" value="$(var peer_tf_yaw)"/>
+        </node>
+
+        <!-- продольный ACC MPC: Telemetry -> long_cmd (только v; кап по v_curve) -->
+        <node pkg="swarm_controller" exec="swarm_acc_mpc_node" name="swarm_acc_mpc_node" output="screen">
+          <param from="$(find-pkg-share swarm_controller)/config/acc_mpc.param.yaml"/>
+          <param name="telemetry_topic" value="/$(var vehicle_id)/control/telemetry"/>
+          <param name="cmd_vel_topic" value="/$(var vehicle_id)/control/long_cmd"/>
+          <param name="v_curve_topic" value="v_curve"/>
+        </node>
+      </group>
+
+      <!-- ── боковой: lat MPC, объединяет v (long_cmd) + w (MPC) -> /<vehicle_id>/cmd_vel ──
+           Полоса /<vehicle_id>/control/pacemaker/path: в режиме cc от lane_publisher,
+           в режиме acc — от acc_telemetry (перенесённая полоса лидера). -->
       <node pkg="swarm_controller" exec="swarm_lat_mpc_node" name="swarm_lat_mpc_node" output="screen">
         <param from="$(find-pkg-share swarm_controller)/config/lat_mpc.param.yaml"/>
         <param name="long_cmd_topic" value="/$(var vehicle_id)/control/long_cmd"/>

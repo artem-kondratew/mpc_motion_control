@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+  CycloneDDS: ИЗОЛЯЦИЯ DDS НА LOCALHOST (для колонны/ACC).
+
+  Зачем: роботы НЕ должны видеть топики друг друга по DDS — единственный мост
+  между ними это UDP-пакет v2v_bridge (profile v2v). Так префиксы (/alpha, /bravo)
+  не пересекаются в сети, нет лишнего DDS-трафика и гонок дискавери.
+
+  Установка: положить ЭТОТ файл на КАЖДОМ роботе в ~/.cyclone_dds/cyclonedds.xml
+  (он монтируется в контейнер как /tmp/cyclonedds.xml, см. ricar-launch/common.yaml).
+
+      mkdir -p ~/.cyclone_dds
+      cp <repo>/ricar-launch/cyclonedds.localhost.xml ~/.cyclone_dds/cyclonedds.xml
+
+  Дискавери только по loopback: интерфейс lo, мультикаст выключен, единственный
+  peer = localhost. Участники в пределах одного хоста (все docker-сервисы тут на
+  network_mode: host) видят друг друга через lo.
+-->
+<CycloneDDS xmlns="https://cdds.io/config"
+            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+            xsi:schemaLocation="https://cdds.io/config https://raw.githubusercontent.com/eclipse-cyclonedds/cyclonedds/master/etc/cyclonedds.xsd">
+  <Domain Id="any">
+    <General>
+      <Interfaces>
+        <NetworkInterface name="lo" presence_required="false"/>
+      </Interfaces>
+      <AllowMulticast>false</AllowMulticast>
+      <EnableMulticastLoopback>true</EnableMulticastLoopback>
+    </General>
+    <Discovery>
+      <ParticipantIndex>auto</ParticipantIndex>
+      <Peers>
+        <Peer address="localhost"/>
+      </Peers>
+    </Discovery>
+  </Domain>
+</CycloneDDS>
