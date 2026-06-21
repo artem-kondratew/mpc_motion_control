@@ -6,6 +6,16 @@
        default="$(find-pkg-share kobuki_description)/urdf/kobuki_standalone.urdf.xacro"
        description="path to the file of model settings (*.xacro)"/>
 
+  <!-- ACC: статическая стыковка карт двух роботов. Раздельные lio_sam-карты
+       (<id>/lio_sam_odom и <peer_id>/lio_sam_odom) связываются известным начальным
+       оффсетом (поза старта лидера в системе ведомого, из .env). Нужен, чтобы
+       зеркальные топики лидера (/<peer_id>/...) визуализировались в дереве TF ведомого. -->
+  <arg name="peer_tf" default="false" description="публиковать статик-TF к фрейму лидера (ACC, на ведомом)"/>
+  <arg name="peer_id" default="alpha" description="vehicle_id лидера"/>
+  <arg name="peer_tf_x" default="0.0"/>
+  <arg name="peer_tf_y" default="0.0"/>
+  <arg name="peer_tf_yaw" default="0.0"/>
+
   <group>
     <!-- namespacing: все TF под /<vehicle_id>/tf; URDF-фреймы префиксованы через frame_prefix -->
     <push-ros-namespace namespace="$(var vehicle_id)"/>
@@ -16,12 +26,12 @@
       <param name="frame_prefix" value="$(var vehicle_id)/"/>
     </node>
 
-    <!-- Mount лидара: <p>base_link -> <p>lidar_70 (p = <vehicle_id>/).
+    <!-- Mount лидара: <p>base_link -> <p>lidar_50 (p = <vehicle_id>/).
          Нужен и lio_sam (lidar2Baselink), и twist_estimator (плечо ω×t).
          TODO: вписать РЕАЛЬНЫЙ офсет установки MID360 (сейчас заглушка z=0.20). -->
-    <node pkg="tf2_ros" exec="static_transform_publisher" name="lidar_70_mount_tf"
+    <node pkg="tf2_ros" exec="static_transform_publisher" name="lidar_50_mount_tf"
           args="--x 0.0 --y 0.0 --z 0.20 --roll 0.0 --pitch 0.0 --yaw 0.0
-                --frame-id $(var vehicle_id)/base_link --child-frame-id $(var vehicle_id)/lidar_70"/>
+                --frame-id $(var vehicle_id)/base_link --child-frame-id $(var vehicle_id)/lidar_50"/>
 
     <!-- Подвешиваем odom kobuki дочерним к одометрии lio_sam (identity в начале координат).
          <p>lio_sam_odom -> <p>base_footprint (SLAM), <p>odom -> <p>base_link_kobuki (kobuki). -->
@@ -33,5 +43,11 @@
     <node pkg="tf2_ros" exec="static_transform_publisher" name="lidar_link_to_vehicle_tf"
           args="--x 0.0 --y 0.0 --z 0.0 --roll 0.0 --pitch 0.0 --yaw 0.0
                 --frame-id $(var vehicle_id)/lidar_link --child-frame-id $(var vehicle_id)"/>
+
+    <!-- ACC: стыковка карт. <p>lio_sam_odom -> <peer_id>/lio_sam_odom (оффсет старта лидера). -->
+    <node if="$(var peer_tf)" pkg="tf2_ros" exec="static_transform_publisher" name="peer_map_anchor_tf"
+          args="--x $(var peer_tf_x) --y $(var peer_tf_y) --z 0.0
+                --roll 0.0 --pitch 0.0 --yaw $(var peer_tf_yaw)
+                --frame-id $(var vehicle_id)/lio_sam_odom --child-frame-id $(var peer_id)/lio_sam_odom"/>
   </group>
 </launch>

@@ -1,5 +1,5 @@
 # build context = корень репо (tvp_docker_image/docker-compose.yml: context: ..)
-# COPY берёт только workspace/src — остальное в образ не нужно
+# COPY берёт workspace/src + microros_ws/src/micro_ros_setup — остальное в образ не нужно
 
 .git
 **/.git

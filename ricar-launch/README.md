@@ -130,7 +130,7 @@ ricar clean perception
 ### Закоммитить профиль
 Сохраняет текущее состояние контейнера сервиса в образ. Сам контейнер не удаляется и не перезапускается. Имя образа может быть как существующим (будет перезаписан тег), так и новым.
 ```shell
-ricar commit logging tvp_image:alpha
+ricar commit logging tvp_image:bravo
 ricar commit logging tvp_image:new_tag
 ricar commit logging new_image:new_tag
 ```
@@ -201,7 +201,7 @@ ricar stop_record
 
 3. Закоммитить состояние debug-контейнера в образ, из которого запускается стек (имя образа — из `.env`, переменная `IMAGE`):
    ```shell
-   ricar commit debug tvp_image:alpha
+   ricar commit debug tvp_image:bravo
    ```
    `ricar commit` берет имя сервиса (`debug`), сам находит его контейнер и коммитит в указанный образ. Имя образа можно указать как существующее, так и новое.
 

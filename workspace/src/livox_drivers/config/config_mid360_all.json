@@ -15,16 +15,16 @@
     },
 
     "host_net_info": {
-      "cmd_data_ip": "10.10.10.103",
+      "cmd_data_ip": "10.10.10.102",
       "cmd_data_port": 56101,
 
-      "push_msg_ip": "10.10.10.103",
+      "push_msg_ip": "10.10.10.102",
       "push_msg_port": 56201,
 
-      "point_data_ip": "10.10.10.103",
+      "point_data_ip": "10.10.10.102",
       "point_data_port": 56301,
 
-      "imu_data_ip": "10.10.10.103",
+      "imu_data_ip": "10.10.10.102",
       "imu_data_port": 56401,
 
       "log_data_ip": "",
@@ -34,7 +34,7 @@
 
   "lidar_configs": [
     {
-      "ip": "10.10.10.70",
+      "ip": "10.10.10.50",
       "pcl_data_type": 1,
       "pattern_mode": 0,
       "blind_spot_set": 50,

@@ -3,7 +3,7 @@
   <arg name="vehicle_id" default="alpha" description="префикс робота: namespace + TF-фреймы (2+ роботов в одной сети)"/>
 
   <group>
-    <!-- namespacing: /<vehicle_id>/sensing/livox/...; выходные фреймы lidar_70/imu_70 префиксованы -->
+    <!-- namespacing: /<vehicle_id>/sensing/livox/...; выходные фреймы lidar_50/imu_50 префиксованы -->
     <push-ros-namespace namespace="$(var vehicle_id)"/>
     <push-ros-namespace namespace="sensing"/>
 

@@ -83,6 +83,21 @@ RUN git clone https://github.com/Livox-SDK/Livox-SDK2.git /tmp/livox_sdk && \
     cmake --install /tmp/livox_sdk_build && \
     rm -rf /tmp/livox_sdk /tmp/livox_sdk_build
 
+# micro-ROS agent (bravo): транспорт STM<->DDS по serial. Собираем под x86 через micro_ros_setup
+# (apt-пакета ros-humble-micro-ros-agent в базовом образе нет). create_agent_ws.sh качает
+# исходники агента, build_agent.sh собирает -> /microros_ws/install. Прошивка STM тут НЕ собирается.
+COPY microros_ws/src/micro_ros_setup /microros_ws/src/micro_ros_setup
+RUN source ${SOURCE} && \
+    apt-get update -y && \
+    cd /microros_ws && \
+    (rosdep init >/dev/null 2>&1 || true) && rosdep update && \
+    rosdep install --from-paths src --ignore-src -y && \
+    colcon build && \
+    source install/local_setup.bash && \
+    ros2 run micro_ros_setup create_agent_ws.sh && \
+    ros2 run micro_ros_setup build_agent.sh && \
+    rm -rf /var/lib/apt/lists/*
+
 # Локальные ROS2-пакеты turtlebot (kobuki, livox drivers, lio_sam, tvp_launch и т.д.)
 # COPY вместо клонирования внутренних gitlab-репозиториев.
 # Контекст сборки = корень репозитория (см. docker-compose.yml: context: ..).
@@ -92,7 +107,8 @@ COPY workspace/src ${WORKDIR}/src
 RUN source ${SOURCE} && colcon build --symlink-install --cmake-args -DROS_EDITION=ROS2 -DDISTRO_ROS=humble
 
 RUN echo "source ${SOURCE}" >> /root/.bashrc && \
-    echo "source ${WORKDIR}/install/setup.bash" >> /root/.bashrc
+    echo "source ${WORKDIR}/install/setup.bash" >> /root/.bashrc && \
+    echo "source /microros_ws/install/local_setup.bash" >> /root/.bashrc
 
 # доступ к serial-устройствам (kobuki /dev/ttyUSB0 и т.п.)
 RUN usermod -aG dialout aw

@@ -106,7 +106,7 @@ ricar (env $VEHICLE_ID) ─► tvp_core_*.launch.xml (arg vehicle_id)
 └── .dockerignore              # контекст = корень репо
 ```
 
-**Поток компонентов:** `ricar up <profile>` → контейнер на образе `tvp_image:latest`
+**Поток компонентов:** `ricar up <profile>` → контейнер на образе `tvp_image:bravo`
 → `ros2 launch tvp_launch tvp_core_<profile>.launch.xml` → пакеты из `workspace/src`.
 
 ---
@@ -125,7 +125,7 @@ cd ~/robot/tvp_docker_image
 #   ./build.sh no-cache    — полная пересборка
 #   ./build.sh rebuild-*   — частичные (см. tvp_docker_image/README.md)
 ```
-Результат — образ `tvp_image:latest`. Базовый образ большой (autoware), первая
+Результат — образ `tvp_image:bravo`. Базовый образ большой (autoware), первая
 сборка долгая.
 
 **Что делает Dockerfile (кратко):** ставит apt-пакеты (cyclonedds, ecl-* и
@@ -186,7 +186,7 @@ colcon собран с `--symlink-install`. Поэтому:
   - изменён **Dockerfile** (apt/pip-зависимости, gtsam, ...);
   - новые **msg/srv** (напр. swarm_msgs) — нужны сгенерированные биндинги.
   - Быстрая альтернатива ребилду: `ricar enter debug` →
-    `colcon build --packages-select <pkg>` → `ricar commit debug tvp_image:latest`
+    `colcon build --packages-select <pkg>` → `ricar commit debug tvp_image:bravo`
     → `ricar clean <profile> && ricar up <profile>`.
 
 Правило: **Python-нода уже существующего пакета и любые конфиги — live; новый
@@ -337,7 +337,7 @@ Livox .70 ─► livox_ros_driver2 ─► rewrite_frames ─► /<id>/sensing/li
 | `tf` лукапы lio_sam/twist_estimator не находят фрейм (`Could not find transform <id>/...`) | рассинхрон префиксов: базовое имя фрейма различается в livox `rewrite_frames.yaml` / lio_sam `lidarFrame` / статик-mount, либо запущен не весь набор профилей. `/tf` глобальный — проверь `ros2 run tf2_tools view_frames`, все фреймы должны быть `<id>/...` |
 
 Общий приём отладки из README ricar: поднять `debug` (`ricar up debug` → `ricar enter debug`),
-починить/собрать внутри, `ricar commit debug tvp_image:latest`, затем `ricar clean <prof> && ricar up <prof>`.
+починить/собрать внутри, `ricar commit debug tvp_image:bravo`, затем `ricar clean <prof> && ricar up <prof>`.
 
 ---
 

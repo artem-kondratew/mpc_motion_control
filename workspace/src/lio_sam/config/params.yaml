@@ -9,8 +9,8 @@
     # gpsTopic: "odometry/gpsz"                    # GPS odometry topic from navsat, see module_navsat.launch file
 
     # Frames. baselinkFrame = base_footprint (корень kobuki URDF), иначе двойной родитель у base_link.
-    # lio_sam публикует lio_sam_odom -> base_footprint; дальше URDF: base_footprint -> base_link -> lidar_70.
-    lidarFrame: "lidar_70"
+    # lio_sam публикует lio_sam_odom -> base_footprint; дальше URDF: base_footprint -> base_link -> lidar_50.
+    lidarFrame: "lidar_50"
     baselinkFrame: "base_footprint"
     odometryFrame: "lio_sam_odom"
     mapFrame: "lio_sam_map"

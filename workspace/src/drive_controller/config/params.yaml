@@ -1,0 +1,32 @@
+/**:
+    ros__parameters:
+        publish_odom: true                                       # publishing nav_msgs/Odometry if true
+        publish_tf: false                                        # publishing transform if true
+        odom_pub: odom                                           # output odometry topic
+        cmd_vel_sub: cmd_vel                                     # input cmd_vel topic (from high level)
+        # Связь по топикам НАПРЯМУЮ с прошивкой STM (через micro-ROS agent, без udp_bridge).
+        # Имена = ровно то, что объявляет прошивка (freertos.c). Относительные -> под /<vehicle_id>/.
+        # drive_controller ПУБЛИКУЕТ -> STM ПОДПИСАН (вход STM):
+        cmd_vel_pub_left_topic: drive_controller/cmd_vel_l_bridge   # -> STM sub cmd_vel_l_bridge (Float32)
+        cmd_vel_pub_right_topic: drive_controller/cmd_vel_r_bridge  # -> STM sub cmd_vel_r_bridge (Float32)
+        # drive_controller ПОДПИСАН <- STM ПУБЛИКУЕТ (выход STM):
+        ticks_left_topic: drive_controller/ticks_left              # <- STM pub ticks_left (Int64)
+        ticks_right_topic: drive_controller/ticks_right            # <- STM pub ticks_right (Int64)
+        vel_left_topic: drive_controller/cmd_vel_back_l            # <- STM pub cmd_vel_back_l (Float32, w rad/s)
+        vel_right_topic: drive_controller/cmd_vel_back_r           # <- STM pub cmd_vel_back_r (Float32, w rad/s)
+
+        # pid_sub_topic: drive_controller/pid                    # topic with PID-terms from keyboard handler
+        reset_sub_topic: drive_controller/reset_bridge           # общий сброс с STM sub reset_bridge (Bool)
+        r: 0.0323                                                # wheel radius 0.03239
+        l: 0.2437                                                # distance between wheels 0.24
+        kl: 1.0                                                  # linear odometry scale coefficient 0.96
+        ka: 1.0                                                  # angular odometry scale coefficient 0.95
+        ticks: 330.0                                             # number of ticks per one rotation
+        frame_id: odom                                           # БАЗОВОЕ имя; frame_prefix -> <vehicle_id>/odom
+        child_frame_id: base_footprint                           # frame_prefix -> <vehicle_id>/base_footprint
+        kp: 2.0                                                  # P-term of PID regulator
+        ki: 0.0                                                  # I-term of PID regulator
+        kd: 0.1                                                  # D-term of PID regulator
+        limit_vels: false                                        # limiting x and theta velocities if true
+        max_x_vel: 0.0                                           # linear velocity limit
+        max_yaw_vel: 0.0                                         # angular velocity limit

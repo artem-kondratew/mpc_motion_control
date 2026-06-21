@@ -30,6 +30,7 @@ setup(
             'lane_publisher = swarm_controller.lane_publisher:main',
             'swarm_sliding_mode_node = swarm_controller.swarm_sliding_mode_node:main',
             'swarm_acc_mpc_node = swarm_controller.swarm_acc_mpc_node:main',
+            'acc_telemetry = swarm_controller.acc_telemetry:main',
             'swarm_lat_mpc_node = swarm_controller.swarm_lat_mpc_node:main',
             'peer_localization = swarm_controller.peer_localization:main',
             'pacemaker_controller = swarm_controller.pacemaker_controller:main',

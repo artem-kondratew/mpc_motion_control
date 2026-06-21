@@ -1,12 +1,12 @@
 /**:
   ros__parameters:
     input_topics:
-      - livox/imu_10_10_10_70
-      - livox/lidar_10_10_10_70
+      - livox/imu_10_10_10_50
+      - livox/lidar_10_10_10_50
 
     frame_names:
-      - imu_70
-      - lidar_70
+      - imu_50
+      - lidar_50
 
     # ОТНОСИТЕЛЬНЫЕ (без "/"): под namespace sensing робота резолвятся в
     # /<vehicle_id>/sensing/livox/{imu,points}.

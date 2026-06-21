@@ -1,6 +1,6 @@
 services:
     vehicle:
-        command: $CMD "source /autoware/install/setup.bash && ros2 launch tvp_launch tvp_core_vehicle.launch.xml"
+        command: $CMD "source /autoware/install/setup.bash && ros2 launch tvp_launch tvp_core_vehicle.launch.xml vehicle_id:=$$VEHICLE_ID"
         extends:
             file: common.yaml
             service: app
@@ -10,6 +10,33 @@ services:
             - all
             - vehicle
             - benchmark
+
+    # micro-ROS agent: транспорт STM<->DDS по serial. Кладёт топики прошивки /<id>/drive_controller/*
+    # прямо на DDS (тот же CycloneDDS-домен) -> drive_controller видит их БЕЗ udp_bridge.
+    microros:
+        command: $CMD "source /autoware/install/setup.bash &&
+            source /microros_ws/install/local_setup.bash &&
+            ros2 run micro_ros_agent micro_ros_agent serial --dev $MICROROS_DEV -b 115200"
+        extends:
+            file: common.yaml
+            service: app
+        devices:
+            - /dev:/dev
+        profiles:
+            - microros
+
+    # v2v: UDP-мост телеметрии «мимо ROS» между роботами (DDS изолированы localhost_only).
+    # role=leader (alpha) -> sender читает свои топики и шлёт на PEER_IP; role=follower (bravo)
+    # -> receiver принимает и переиздаёт зеркалом /<LEADER_ID>/... для acc_telemetry.
+    v2v:
+        command: $CMD "source /autoware/install/setup.bash &&
+            ros2 launch v2v_bridge v2v.launch.py role:=$V2V_ROLE leader_id:=$LEADER_ID peer_ip:=$PEER_IP"
+        extends:
+            file: common.yaml
+            service: app
+        profiles:
+            - all
+            - v2v
 
     # --- НЕ нужно для turtlebot-MVP (autoware lanelet2-карты) ---
     # map:
@@ -65,7 +92,7 @@ services:
 
     # control: swarm Cruise Control (CC) MPC — этап 1
     control:
-        command: $CMD "source /autoware/install/setup.bash && ros2 launch tvp_launch tvp_core_control.launch.xml vehicle_id:=$$VEHICLE_ID lateral:=$LATERAL trajectory:=$TRAJECTORY trajectory_file:=$TRAJECTORY_FILE"
+        command: $CMD "source /autoware/install/setup.bash && ros2 launch tvp_launch tvp_core_control.launch.xml vehicle_id:=$$VEHICLE_ID lateral:=$LATERAL trajectory:=$TRAJECTORY trajectory_file:=$TRAJECTORY_FILE longitudinal:=$LONGITUDINAL peer_id:=$LEADER_ID peer_tf_x:=$PEER_TF_X peer_tf_y:=$PEER_TF_Y peer_tf_yaw:=$PEER_TF_YAW"
         extends:
             file: common.yaml
             service: app
@@ -96,7 +123,7 @@ services:
             - benchmark
 
     transforms:
-        command: $CMD "source /autoware/install/setup.bash && ros2 launch tvp_launch tvp_core_transforms.launch.xml vehicle_id:=$$VEHICLE_ID"
+        command: $CMD "source /autoware/install/setup.bash && ros2 launch tvp_launch tvp_core_transforms.launch.xml vehicle_id:=$$VEHICLE_ID peer_tf:=$PEER_TF peer_id:=$LEADER_ID peer_tf_x:=$PEER_TF_X peer_tf_y:=$PEER_TF_Y peer_tf_yaw:=$PEER_TF_YAW"
         extends:
             file: common.yaml
             service: app

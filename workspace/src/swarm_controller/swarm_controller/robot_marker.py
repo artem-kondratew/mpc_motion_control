@@ -58,7 +58,7 @@ class RobotMarker(Node):
         bump.color.r, bump.color.g, bump.color.b = 0.85, 0.65, 0.10
         arr.markers.append(bump)
 
-        # лидар MID360 — цилиндр сверху (z=0.20, как mount base_link->lidar_70)
+        # лидар MID360 — цилиндр сверху (z=0.20, как mount base_link->lidar_50)
         lidar = self._m(2, Marker.CYLINDER)
         lidar.scale.x = lidar.scale.y = 0.065
         lidar.scale.z = 0.06

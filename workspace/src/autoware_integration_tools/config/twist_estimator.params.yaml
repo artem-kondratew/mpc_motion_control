@@ -1,7 +1,7 @@
 /**:
   ros__parameters:
     # lio_sam отдаёт позу ЛИДАРА (не imu) → лидарный фрейм
-    odometry_frame: lidar_70
+    odometry_frame: lidar_50
     base_link_frame: base_link
 
     velocity_stddev_xx: 0.2          # Linear velocity standard deviation [m/s]

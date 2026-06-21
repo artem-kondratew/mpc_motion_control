@@ -43,7 +43,7 @@ def generate_launch_description():
         name='twist_estimator_node',
         output='screen',
         parameters=[params_file, {
-            'odometry_frame': [frame_prefix, 'lidar_70'],
+            'odometry_frame': [frame_prefix, 'lidar_50'],
             'base_link_frame': [frame_prefix, 'base_link'],
         }],
         arguments=['--ros-args', '--log-level', LaunchConfiguration('log_level')],

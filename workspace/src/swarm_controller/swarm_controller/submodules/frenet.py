@@ -108,6 +108,42 @@ def compute_kappa_profile_along_horizon(
     return profile
 
 
+def cumulative_arclength(px: np.ndarray, py: np.ndarray) -> np.ndarray:
+    """Кумулятивная длина дуги вдоль полилинии: s[i] = длина пути до точки i.
+
+    Возвращает массив длины N (s[0]=0). Для замкнутой петли длина последнего
+    сегмента (last→first) не входит в s; полная длина петли считается отдельно.
+    """
+    if len(px) < 2:
+        return np.zeros(len(px))
+    seg = np.hypot(np.diff(px), np.diff(py))
+    return np.concatenate([[0.0], np.cumsum(seg)])
+
+
+def arclength_at(
+    px: np.ndarray, py: np.ndarray, cumlen: np.ndarray,
+    idx: int, rx: float, ry: float,
+) -> float:
+    """Arc-length s проекции точки (rx,ry) на полилинию у сегмента idx.
+
+    s = cumlen[idx] + проекция вектора (r − path[idx]) на единичную касательную
+    сегмента idx→idx+1, ограниченная длиной сегмента. Даёт гладкое s между
+    вейпойнтами (без дискретных ступенек по idx).
+    """
+    n = len(px)
+    if n == 0:
+        return 0.0
+    idx = max(0, min(int(idx), n - 1))
+    s = float(cumlen[idx])
+    if idx + 1 < n:
+        tx, ty = px[idx + 1] - px[idx], py[idx + 1] - py[idx]
+        seg_len = math.hypot(tx, ty)
+        if seg_len > 1e-9:
+            proj = ((rx - px[idx]) * tx + (ry - py[idx]) * ty) / seg_len
+            s += float(min(max(proj, 0.0), seg_len))
+    return s
+
+
 def yaw_from_quat(qx: float, qy: float, qz: float, qw: float) -> float:
     """Yaw angle (REP-103, CCW from +x) from quaternion."""
     return float(math.atan2(

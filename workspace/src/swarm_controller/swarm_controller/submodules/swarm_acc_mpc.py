@@ -213,7 +213,11 @@ class SwarmAccController:
         dx_err = dx - self.d0
         x = np.array([dx_err, v, v_rel, a_est, j_est])
 
-        ex = (x - self._x_predicted) if self._x_predicted is not None else np.zeros(n_in)
+        # offset-free коррекция ОТКЛЮЧЕНА (ex=0): MPC чисто пропорциональный/предиктивный.
+        # Любой offset-free здесь давал windup (полный — по v_rel, ex[0]-only — застревал
+        # на перелёте). Установившуюся ошибку зазора (droop) убирает ЯВНЫЙ интеграл с
+        # анти-windup в swarm_acc_mpc_node (back-calc / conditional integration).
+        ex = np.zeros(n_in)
 
         y  = self.C @ x
         Yr = self.FA @ y
