@@ -35,7 +35,6 @@ MPC-алгоритмы управления продольным и попере
 | `workspace/src/lio_sam/` | лидарно-инерциальная одометрия и построение карты |
 | `workspace/src/livox_drivers/`, `livox_ros_driver2/`, `livox_sdk/` | драйвер лидара Livox MID360 |
 | `workspace/src/kobuki_*/` | драйвер базы TurtleBot2 (Kobuki) |
-| `workspace/src/drive_controller/`, `robot_msgs/` | drive-контроллер платформы на STM |
 | `workspace/src/tvp_launch/` | точки запуска стека, `launch/components/tvp_core_*.launch.xml` |
 | `workspace/src/autoware_integration_tools/` | оценка скорости по лидарной одометрии, мост в Foxglove |
 | `tvp_docker_image/` | Dockerfile и сборка образа |
@@ -49,7 +48,7 @@ MPC-алгоритмы управления продольным и попере
 
 | Компонент | Значение |
 |---|---|
-| База | TurtleBot2 (Kobuki), USB-serial, либо diff-drive шасси на STM через micro-ROS |
+| База | TurtleBot2 (Kobuki), USB-serial |
 | Лидар | Livox MID360, Ethernet |
 | Локализация | LIO-SAM |
 | Решатель QP | OSQP |
@@ -134,7 +133,6 @@ ricar start all            # весь стек
 
 - [`swarm_cruise_control`](https://github.com/artem-kondratew/swarm_cruise_control) — ранняя версия круиз-контроля для другой платформы.
 - [`av_trajectory_planning`](https://github.com/artem-kondratew/av_trajectory_planning) — планирование траектории для платформы с рулевым управлением по Аккерману.
-- [`just-robotics/robot`](https://github.com/just-robotics/robot) — драйвер робота: низкоуровневое управление платформой.
 
 ## Лицензия
 
