@@ -5,7 +5,7 @@
   <version>0.0.0</version>
   <description>UDP-мост телеметрии «мимо ROS» между роботами (изолированные DDS-домены).
     sender (лидер) сериализует выбранные топики в CDR и шлёт по UDP; receiver (ведомый)
-    принимает, десериализует и переиздаёт их в свой ROS-граф зеркалом /<leader_id>/...</description>
+    принимает, десериализует и переиздаёт их в свой ROS-граф зеркалом leader_id</description>
   <maintainer email="artemkondratev5@gmail.com">user</maintainer>
   <license>TODO: License declaration</license>
 
