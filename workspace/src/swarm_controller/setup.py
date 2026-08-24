@@ -28,6 +28,7 @@ setup(
         'console_scripts': [
             'swarm_cc_mpc_node = swarm_controller.swarm_cc_mpc_node:main',
             'lane_publisher = swarm_controller.lane_publisher:main',
+            'trajectory_planner = swarm_controller.trajectory_planner:main',
             'swarm_sliding_mode_node = swarm_controller.swarm_sliding_mode_node:main',
             'swarm_acc_mpc_node = swarm_controller.swarm_acc_mpc_node:main',
             'acc_telemetry = swarm_controller.acc_telemetry:main',

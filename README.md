@@ -41,19 +41,41 @@ RUN python3 -m pip install --no-cache-dir osqp scipy
 
 ## Запуск
 
+Планирование и управление разнесены: планировщик строит опорную траекторию и
+публикует её в `/planning/trajectory`, контроллер подписывается и следует по
+ней. Новая траектория подхватывается **на ходу**, без перезапуска.
+
 ```bash
-ros2 launch swarm_controller sim_control.launch.py
+ros2 launch swarm_controller sim_planning.launch.py   # -> /planning/trajectory
+ros2 launch swarm_controller sim_control.launch.py    # /planning/trajectory -> /cmd_vel
 ```
+
+Смена траектории во время движения:
+
+```bash
+ros2 param set /planning/trajectory_planner trajectory line
+ros2 param set /planning/trajectory_planner circle_radius 3.0
+```
+
+`sim_planning.launch.py`:
+
+| Аргумент | По умолчанию | Значения |
+|---|---|---|
+| `trajectory` | `lanelet` | `line`, `circle`, `lanelet` |
+| `trajectory_file` | `my_trajectory5.yaml` | waypoints для `lanelet` |
+| `trajectory_topic` | `/planning/trajectory` | куда публиковать |
+| `pose_topic` | `/odom` | поза для привязки старта |
+| `frame_id` | `odom` | фрейм траектории |
+
+`sim_control.launch.py`:
 
 | Аргумент | По умолчанию | Значения |
 |---|---|---|
 | `lateral` | `true` | `true` — удержание в полосе поверх продольного контура |
 | `longitudinal` | `cc` | `cc` — свой целевой профиль скорости, `acc` — зазор за лидером |
-| `trajectory` | `circle` | `line`, `circle`, `lanelet` |
-| `trajectory_file` | `my_trajectory5.yaml` | waypoints для `lanelet` |
+| `trajectory_topic` | `/planning/trajectory` | опорная траектория от планировщика |
 | `odom_topic` | `/odom` | одометрия симулятора |
 | `cmd_vel_topic` | `/cmd_vel` | команда скорости в симулятор |
-| `frame_id` | `odom` | фрейм опорной траектории |
 | `peer_id` | `leader` | префикс топиков лидера для `acc` |
 
 ## Отличия от main
@@ -67,7 +89,8 @@ ros2 launch swarm_controller sim_control.launch.py
 | Команда | `/<vehicle_id>/cmd_vel` | `/cmd_vel` |
 | Поза | LIO-SAM, `/<id>/lio_sam/mapping/odometry` | `/odom` |
 | Фрейм траектории | `<id>/lio_sam_odom` | `odom` |
-| Профили запуска | `vehicle`, `sensing`, `localization`, `transforms`, `control` | только `control` |
+| Профили запуска | `vehicle`, `sensing`, `localization`, `transforms`, `control` | `planning` + `control` |
+| Траектория | `lane_publisher` внутри `control` | отдельная нода в `planning` |
 
 Параметры MPC (`config/*.param.yaml`) снимались на реальной Kobuki — в
 симуляторе динамика другая, их нужно перетюнить.

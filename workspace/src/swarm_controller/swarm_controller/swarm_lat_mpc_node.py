@@ -185,14 +185,16 @@ class SwarmLatMpcNode(Node):
             return
         new_x = np.array([p.pose.position.x for p in msg.poses], dtype=float)
         new_y = np.array([p.pose.position.y for p in msg.poses], dtype=float)
-        if self._path_x is None or len(new_x) != len(self._path_x):
-            self._prev_path_idx = None
         geom_changed = (
             self._path_x is None
             or len(new_x) != len(self._path_x)
             or not (np.array_equal(new_x, self._path_x)
                     and np.array_equal(new_y, self._path_y))
         )
+        # смена траектории на ходу: индекс ближайшей точки ищется в окне вокруг
+        # предыдущего, поэтому на новой геометрии его нужно сбросить на полный поиск
+        if geom_changed:
+            self._prev_path_idx = None
         self._path_x, self._path_y = new_x, new_y
         if geom_changed:
             wpts = np.column_stack([new_x, new_y])
