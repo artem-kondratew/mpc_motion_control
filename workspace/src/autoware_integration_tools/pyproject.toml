@@ -1,8 +1,0 @@
-[project]
-name = "autoware_integration_tools"
-version = "0.1.0"
-dependencies = [
-  "numpy",
-  "scipy",
-  "transitions",
-]

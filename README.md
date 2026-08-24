@@ -1,138 +1,84 @@
-# mpc_motion_control
+# mpc_motion_control — ветка hackathon2026
 
-MPC-алгоритмы управления продольным и поперечным движением мобильных роботов:
+Контроллеры MPC для симулятора [hackathon2026](https://github.com/just-robotics/hackathon2026):
 круиз-контроль (CC), адаптивный круиз-контроль (ACC) и удержание в полосе.
-Реализация на ROS 2 Humble для diff-drive платформы с лидарной локализацией.
 
-Алгоритмы сформулированы в магистерской диссертации «MPC-алгоритмы управления
-продольным и поперечным движением мобильных роботов» (НТУ «Сириус», 2026) и
-проверены сначала в симуляторе CARLA, а затем на реальной платформе — код в
-этом репозитории соответствует второму этапу.
-
-## Возможности
-
-- **Круиз-контроль** — удержание целевой скорости, MPC по линеаризованной модели
-  продольной динамики (`swarm_cc_mpc_node`).
-- **Адаптивный круиз-контроль** — удержание дистанции до впереди идущего робота
-  по политике постоянного временного интервала (CTH), с интегральным контуром по
-  зазору и ограничением скорости по кривизне пути (`swarm_acc_mpc_node`).
-- **Удержание в полосе** — поперечное управление на LTV-велосипедной модели, плюс
-  геометрические контроллеры Pure Pursuit и Stanley для сравнения
-  (`swarm_lat_mpc_node`).
-- **Управление в скользящем режиме** — альтернативный продольный контур
-  (`swarm_sliding_mode_node`).
-
-Задача квадратичного программирования решается через OSQP, продольная и поперечная
-динамика разведены на два независимых контура.
+Эта ветка — срез ветки `main` под симулятор Gazebo. Оставлены только пакеты,
+нужные чтобы поехать в симе; всё, что относится к реальному железу
+(LIO-SAM, драйверы Livox и Kobuki, v2v-мост, обвязка `ricar`), удалено.
+Основная разработка идёт в `main`.
 
 ## Состав
 
 | Каталог | Назначение |
 |---|---|
-| `workspace/src/swarm_controller/` | контроллеры CC / ACC / lateral / sliding-mode, MPC-ядра в `submodules/` |
-| `workspace/src/swarm_msgs/` | сообщения телеметрии между роботами |
-| `workspace/src/v2v_bridge/` | UDP-мост телеметрии между роботами мимо DDS |
-| `workspace/src/lio_sam/` | лидарно-инерциальная одометрия и построение карты |
-| `workspace/src/livox_drivers/`, `livox_ros_driver2/`, `livox_sdk/` | драйвер лидара Livox MID360 |
-| `workspace/src/kobuki_*/` | драйвер базы TurtleBot2 (Kobuki) |
-| `workspace/src/tvp_launch/` | точки запуска стека, `launch/components/tvp_core_*.launch.xml` |
-| `workspace/src/autoware_integration_tools/` | оценка скорости по лидарной одометрии, мост в Foxglove |
-| `tvp_docker_image/` | Dockerfile и сборка образа |
-| `ricar-launch/` | запуск стека: docker compose, профили, CLI `ricar` |
-| `analysis/` | обработка логов экспериментов |
+| `workspace/src/swarm_controller/` | контроллеры CC / ACC / lateral, MPC-ядра в `submodules/` |
+| `workspace/src/swarm_msgs/` | `Telemetry.msg` для ACC |
 
-## Платформа
+## Подключение к hackathon2026
 
-Стек разворачивается в Docker поверх образа Autoware Universe (ROS 2 Humble),
-транспорт — CycloneDDS.
-
-| Компонент | Значение |
-|---|---|
-| База | TurtleBot2 (Kobuki), USB-serial |
-| Лидар | Livox MID360, Ethernet |
-| Локализация | LIO-SAM |
-| Решатель QP | OSQP |
-
-## Сборка
-
-Требуются Docker с BuildKit и docker compose. Идентификатор робота задаётся
-переменной `VEHICLE_ID` — она разводит топики, TF-фреймы и имена нод, чтобы
-несколько роботов работали в одной сети без коллизий.
+Пакеты подключаются подмодулем — код не копируется:
 
 ```bash
-export VEHICLE_ID=alpha
-cd tvp_docker_image
-./build.sh
+git submodule add -b hackathon2026 \
+    git@github.com:artem-kondratew/mpc_motion_control.git src/mpc_motion_control
 ```
 
-Режимы: `./build.sh debug` — подробный вывод, `./build.sh no-cache` — полная
-пересборка.
+В корне репозитория лежит `COLCON_IGNORE`, поэтому автообход colcon подмодуль
+пропускает. Собирать нужно явными путями:
+
+```bash
+colcon build --base-paths \
+    src/mpc_motion_control/workspace/src/swarm_msgs \
+    src/mpc_motion_control/workspace/src/swarm_controller
+```
+
+В образ хакатона нужно доставить решатель QP — его там нет:
+
+```dockerfile
+RUN python3 -m pip install --no-cache-dir osqp scipy
+```
 
 ## Запуск
 
-Стек разбит на профили, каждый — отдельный контейнер. Управление через CLI `ricar`
-(устанавливается из `ricar-launch/ricar_launch/`):
-
 ```bash
-ricar start vehicle        # драйвер базы
-ricar start sensing        # лидар
-ricar start localization   # LIO-SAM
-ricar start transforms     # TF-дерево и URDF
-ricar start control        # контроллеры
-ricar start all            # весь стек
+ros2 launch swarm_controller sim_control.launch.py
 ```
 
-Диагностика: `ricar ps`, `ricar log <профиль>`, `ricar enter debug`.
-Остановка: `ricar stop <профиль>`, пересоздание контейнера: `ricar clean <профиль>`.
+| Аргумент | По умолчанию | Значения |
+|---|---|---|
+| `lateral` | `true` | `true` — удержание в полосе поверх продольного контура |
+| `longitudinal` | `cc` | `cc` — свой целевой профиль скорости, `acc` — зазор за лидером |
+| `trajectory` | `circle` | `line`, `circle`, `lanelet` |
+| `trajectory_file` | `my_trajectory5.yaml` | waypoints для `lanelet` |
+| `odom_topic` | `/odom` | одометрия симулятора |
+| `cmd_vel_topic` | `/cmd_vel` | команда скорости в симулятор |
+| `frame_id` | `odom` | фрейм опорной траектории |
+| `peer_id` | `leader` | префикс топиков лидера для `acc` |
 
-Режим работы задаётся в `ricar-launch/.env`:
+## Отличия от main
 
-| Переменная | Значение |
-|---|---|
-| `VEHICLE_ID` | идентификатор робота, префикс топиков и TF-фреймов |
-| `LONGITUDINAL` | `cc` — свой целевой профиль скорости, `acc` — следование за лидером |
-| `LATERAL` | `true` — удержание в полосе, `false` — только продольное управление |
-| `TRAJECTORY` | форма опорной траектории: `line`, `circle`, `lanelet` |
-| `LEADER_ID` | идентификатор ведущего робота в колонне |
+Симулятор публикует топики без префикса робота, а одометрия Gazebo точная,
+поэтому лидарная локализация не нужна:
 
-## Работа с кодом
+| | main (реальный робот) | эта ветка (симулятор) |
+|---|---|---|
+| Одометрия | `/<vehicle_id>/odom` | `/odom` |
+| Команда | `/<vehicle_id>/cmd_vel` | `/cmd_vel` |
+| Поза | LIO-SAM, `/<id>/lio_sam/mapping/odometry` | `/odom` |
+| Фрейм траектории | `<id>/lio_sam_odom` | `odom` |
+| Профили запуска | `vehicle`, `sensing`, `localization`, `transforms`, `control` | только `control` |
 
-`workspace/src` монтируется в контейнер как volume, colcon собран с
-`--symlink-install`. Поэтому правки конфигов, launch-файлов и Python-нод
-существующих пакетов применяются без пересборки образа — достаточно
-`ricar clean <профиль> && ricar start <профиль>`.
-
-Пересборка образа нужна при изменении C++ кода, добавлении нового пакета,
-новых сообщений или правке Dockerfile.
-
-## Namespacing
-
-Топики, имена нод и TF-фреймы разводятся единым префиксом `VEHICLE_ID`. Это два
-независимых механизма: `push-ros-namespace` для топиков и нод, и `frame_prefix`
-для TF — потому что `/tf` и `/tf_static` в ROS 2 глобальные и namespace их не
-затрагивает.
-
-Базовые имена фреймов лежат в конфигах без префикса, он подставляется в рантайме.
-Одно и то же базовое имя лидарного фрейма используется в трёх местах —
-`livox_drivers/config/rewrite_frames.yaml`, `lio_sam/config/params.yaml`
-(`lidarFrame`) и статическом преобразовании в `tvp_core_transforms.launch.xml`;
-они должны совпадать.
+Параметры MPC (`config/*.param.yaml`) снимались на реальной Kobuki — в
+симуляторе динамика другая, их нужно перетюнить.
 
 ## Тюнинг
 
-| Что | Где |
+| Что | Файл |
 |---|---|
 | Круиз-контроль | `swarm_controller/config/cc_mpc.param.yaml` |
 | Адаптивный круиз-контроль | `swarm_controller/config/acc_mpc.param.yaml` |
 | Удержание в полосе | `swarm_controller/config/lat_mpc.param.yaml`, `lane.param.yaml` |
-| LIO-SAM | `lio_sam/config/params.yaml` |
-| Лидар | `livox_drivers/config/` |
-| Установка лидара на базе | `tvp_launch/launch/components/tvp_core_transforms.launch.xml` |
-
-## Связанные репозитории
-
-- [`swarm_cruise_control`](https://github.com/artem-kondratew/swarm_cruise_control) — ранняя версия круиз-контроля для другой платформы.
-- [`av_trajectory_planning`](https://github.com/artem-kondratew/av_trajectory_planning) — планирование траектории для платформы с рулевым управлением по Аккерману.
 
 ## Лицензия
 

@@ -1,4 +1,0 @@
-robot_teleop:
-    ros__parameters:
-        reset_pub: /drive_controller/reset         # odom reset topic
-        reset_timeout: 2                           # reset timeout (in seconds) for odom reset

@@ -1,7 +1,0 @@
-/**:
-  ros__parameters:
-    motion_type: circle  # circle / rotation
-    map_frame: map
-    odometry_frame: caterwil/livox_mid360_50/imu
-    base_link_frame: base_link
-    dt: 0.1
