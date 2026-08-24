@@ -134,7 +134,7 @@ ricar start all            # весь стек
 
 - [`swarm_cruise_control`](https://github.com/artem-kondratew/swarm_cruise_control) — ранняя версия круиз-контроля для другой платформы.
 - [`av_trajectory_planning`](https://github.com/artem-kondratew/av_trajectory_planning) — планирование траектории для платформы с рулевым управлением по Аккерману.
-- [`just-robotics/robot`](https://github.com/just-robotics/robot) — драйвер робота, из которого вырос этот репозиторий.
+- [`just-robotics/robot`](https://github.com/just-robotics/robot) — драйвер робота: низкоуровневое управление платформой.
 
 ## Лицензия
 
