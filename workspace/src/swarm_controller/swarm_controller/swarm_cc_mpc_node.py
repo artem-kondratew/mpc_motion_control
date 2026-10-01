@@ -40,7 +40,7 @@ class SwarmCcMpcNode(Node):
             ('odom_topic',    '/odom'),
             ('cmd_vel_topic', '/cmd_vel'),
             # target
-            ('v_ref', 0.3),
+            ('v_ref', 0.5),
             # plant (kinematic)
             ('tau', 0.2),
             # MPC tuning (n_out = 3: [v - v_ref, a, j])
@@ -62,6 +62,10 @@ class SwarmCcMpcNode(Node):
             ('v_curve_timeout', 0.5),
             # safety
             ('start', False),
+            # Полная остановка по команде судьи. Отдельно от start: тот
+            # разрешает движение и снимается helm start, а stopped означает,
+            # что соревнование окончено, и снимать его случайно не следует.
+            ('stopped', False),
             ('odom_timeout', 0.5),
         ])
 
@@ -150,6 +154,10 @@ class SwarmCcMpcNode(Node):
         self.verr_pub.publish(Float64(data=float(v_ref - v_meas)))
 
     def _control_step(self) -> None:
+        if self.get_parameter('stopped').value:
+            self._stop_robot()
+            return
+
         started = bool(self.get_parameter('start').value)
         v_ref = float(self.get_parameter('v_ref').value)   # можно менять на лету
         v_ref = self._effective_v_ref(v_ref)               # замедление на кривизне: min(v_ref, v_curve)

@@ -70,12 +70,16 @@ class SwarmLatMpcNode(Node):
             ('e_int_limit', 2.0),
             # curve slowdown: предел скорости по кривизне -> публикуем на /control/v_curve,
             # CC берёт min(v_ref, v_curve). Включается параметром curve_slowdown в cc_mpc.param.yaml.
-            ('a_lat_max', 0.1),         # макс боковое ускорение [m/s²] — ГЛАВНЫЙ knob (меньше -> сильнее тормозит)
-            ('v_min', 0.1),            # нижний предел скорости в повороте [m/s]
+            ('a_lat_max', 0.6),         # макс боковое ускорение [m/s²] — ГЛАВНЫЙ knob (меньше -> сильнее тормозит)
+            ('v_min', 0.25),           # нижний предел скорости в повороте [m/s]
             ('curve_lookahead', 1.0),  # на сколько метров вперёд берём max|κ| (тормозить ДО входа в поворот)
             ('v_curve_cap', 1.0),      # верхний кап: на прямой κ≈0 -> v_curve=cap -> CC использует свой v_ref
             # safety
             ('telemetry_timeout', 0.5),
+            # Полная остановка: судья выставляет его, когда соревнование
+            # закончено. В отличие от ожидания telemetry_timeout выход
+            # обнуляется сразу, а за 0.5 с робот успел бы проехать ещё 25 см.
+            ('stopped', False),
         ])
 
         self.long_cmd_topic       = self.get_parameter('long_cmd_topic').value
@@ -217,6 +221,11 @@ class SwarmLatMpcNode(Node):
         self.wmeas_pub.publish(Float64(data=float(w_meas)))
 
     def _control_step(self) -> None:
+        # полная остановка по команде судьи: раньше всех проверок
+        if self.get_parameter('stopped').value:
+            self._stop_robot()
+            return
+
         # preflight: нужна глобальная поза, путь и свежий long_cmd
         if self.last_pose is None:
             return
