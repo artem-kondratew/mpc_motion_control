@@ -5,7 +5,7 @@
     cmd_vel_topic: "/cmd_vel"      # -> cmd_vel_wrapper -> /commands/velocity (kobuki)
 
     # цель cruise control
-    v_ref: 0.3                     # m/s, целевая скорость. Меняется на лету:
+    v_ref: 0.5                     # m/s, целевая скорость. Меняется на лету:
                                    # ros2 param set /control/swarm_cc_mpc_node v_ref X
                                    # Публикуется как /control/v_ref (+ v_meas/v_cmd/v_error для графиков)
 
@@ -23,8 +23,8 @@
     # ограничения
     a_min: -0.5
     a_max:  0.5
-    v_cmd_min: 0.0
-    v_cmd_max: 0.5
+    v_cmd_min: -0.5
+    v_cmd_max: 0.7
 
     # замедление на кривизне: эфф. цель = min(v_ref, v_curve), где v_curve приходит от lat-ноды
     # (предел по кривизне). ТУМБЛЕР режима. Параметры профиля (a_lat_max...) — в lat_mpc.param.yaml.

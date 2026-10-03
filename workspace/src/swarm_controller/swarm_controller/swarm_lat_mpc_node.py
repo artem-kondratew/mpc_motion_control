@@ -141,6 +141,7 @@ class SwarmLatMpcNode(Node):
         self.last_long_cmd: Twist | None = None
         self.last_long_cmd_stamp = None
         self._long_cmd_was_fresh = False
+        self._reverse = False
         self._prev_path_idx: int | None = None
         self.last_path: Path | None = None
         self._path_x: np.ndarray | None = None
@@ -266,6 +267,35 @@ class SwarmLatMpcNode(Node):
             prev_idx=self._prev_path_idx, search_window=20)
         self._prev_path_idx = idx
 
+        # Задний ход. У Kobuki дифференциальный привод, назад он едет так же,
+        # как вперёд, и планировщик этим пользуется, чтобы выбираться из
+        # тупиков: он просто кладёт путь позади робота.
+        #
+        # Определяем это по ошибке курса: больше 90 градусов означает, что
+        # путь уходит назад, и разворачиваться к нему незачем -- дешевле
+        # сдать задним ходом. Без этого frenet_project давал ошибку около pi,
+        # контроллер считал робота развёрнутым не туда и крутился на месте.
+        # Гистерезис по ИСХОДНОЙ ошибке курса: переходим на задний ход при
+        # ошибке больше 100 градусов, возвращаемся вперёд при менее 80.
+        #
+        # Сравнивать нужно именно исходную величину: после перехода ошибка
+        # пересчитывается на pi и становится малой, так что проверка
+        # пересчитанной сбрасывала флаг на следующем же тике. Знак скорости
+        # переключался 49 раз за 45 секунд, и робот дёргался вперёд-назад
+        # вместо движения.
+        raw_error = abs(e_theta)
+
+        if self._reverse:
+            self._reverse = raw_error > np.deg2rad(80.0)
+        else:
+            self._reverse = raw_error > np.deg2rad(100.0)
+
+        reverse = self._reverse
+        if reverse:
+            # корма робота смотрит вдоль пути: ошибка курса уменьшается на pi
+            e_theta -= np.copysign(np.pi, e_theta)
+            e = -e
+
         # --- предел скорости по кривизне (lookahead): v_curve = sqrt(a_lat_max / max|κ| впереди) ---
         # публикуем всегда; CC применяет min(v_ref, v_curve) при curve_slowdown=true. На прямой -> cap.
         if self._path_kappa is not None and len(self._path_kappa):
@@ -287,12 +317,17 @@ class SwarmLatMpcNode(Node):
             mean_spacing=self._path_mean_spacing,
             cyclic=self._path_cyclic)
 
+        # Регулятору отдаём модуль скорости: его модель предполагает движение
+        # вперёд, а знак учтён в развороте ошибок выше.
         w_cmd, alpha_cmd, y = self.controller.calculate_control(
-            e=e, e_theta=e_theta, w=w, v=v, kappa_profile=kappa_profile)
+            e=e, e_theta=e_theta, w=w, v=abs(v), kappa_profile=kappa_profile)
 
         out = Twist()
-        out.linear.x = v
-        out.angular.z = float(w_cmd)
+        out.linear.x = -abs(v) if reverse else v
+
+        # На заднем ходу тот же поворот корпуса требует обратного знака
+        # угловой скорости: робот описывает дугу в другую сторону.
+        out.angular.z = float(-w_cmd if reverse else w_cmd)
         self.cmd_pub.publish(out)
 
         self._publish_diag(e, e_theta, w_cmd, w)

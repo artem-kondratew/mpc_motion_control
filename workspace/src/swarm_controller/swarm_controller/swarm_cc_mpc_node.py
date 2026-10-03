@@ -53,7 +53,7 @@ class SwarmCcMpcNode(Node):
             # constraints
             ('a_min', -0.5),
             ('a_max',  0.5),
-            ('v_cmd_min', 0.0),
+            ('v_cmd_min', -0.5),   # задний ход: у Kobuki дифференциальный привод
             ('v_cmd_max', 0.5),
             # curve slowdown: эфф. цель = min(v_ref, v_curve), где v_curve приходит от lat-ноды
             # (предел по кривизне). ТУМБЛЕР режима. Параметры профиля — в lat_mpc.param.yaml.
